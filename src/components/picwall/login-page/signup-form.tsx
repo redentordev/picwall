@@ -52,7 +52,7 @@ const SignupForm = () => {
             Name
           </Label>
           <Input
-            id="signup-email"
+            id="signup-name"
             type="text"
             placeholder="John Doe"
             required

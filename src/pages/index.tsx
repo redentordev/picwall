@@ -21,7 +21,7 @@ const generateDummyPosts = (count: number, startIndex: number = 0) => {
   return Array.from({ length: count }, (_, i) => {
     const index = startIndex + i;
     const id = (index + 1).toString();
-    const seed = index + 1;
+    const seed = index + new Date().getTime();
     const username = faker.internet.userName().toLowerCase();
     const timeAgo = `${faker.number.int({ min: 1, max: 23 })}h`;
     const likes = faker.number.int({ min: 50, max: 5000 });

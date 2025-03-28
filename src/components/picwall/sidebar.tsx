@@ -46,7 +46,7 @@ export function Sidebar() {
     return (
       <div className="w-64 border-r border-zinc-800 h-screen sticky top-0 flex flex-col">
         <div className="p-6">
-          <Link href="/home" className="text-2xl font-bold">
+          <Link href="/" className="text-2xl font-bold">
             Picwall
           </Link>
         </div>
@@ -54,9 +54,9 @@ export function Sidebar() {
         <nav className="flex-1 px-3">
           <div className="space-y-1">
             <NavItem
-              href="/home"
+              href="/"
               icon={<Home className="w-5 h-5 mr-3" />}
-              isActive={pathname === "/home"}
+              isActive={pathname === "/"}
             >
               Home
             </NavItem>
@@ -127,12 +127,12 @@ export function Sidebar() {
             </Button>
           ) : (
             <div className="space-y-2">
-              <Link href="/" className="block">
+              <Link href="/login" className="block">
                 <Button variant="ghost" className="w-full">
                   Log in
                 </Button>
               </Link>
-              <Link href="/" className="block">
+              <Link href="/login" className="block">
                 <Button className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 font-bold text-white">
                   Sign up
                 </Button>
@@ -149,7 +149,7 @@ export function Sidebar() {
     <>
       {/* Mobile header */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-zinc-900 border-b border-zinc-800 px-4 py-3 flex justify-between items-center">
-        <Link href="/home" className="text-xl font-bold">
+        <Link href="/" className="text-xl font-bold">
           Picwall
         </Link>
         <Button
@@ -248,7 +248,7 @@ export function Sidebar() {
             ) : (
               <div className="flex flex-col space-y-2">
                 <Link
-                  href="/"
+                  href="/login"
                   className="block"
                   onClick={() => setIsMenuOpen(false)}
                 >
@@ -257,7 +257,7 @@ export function Sidebar() {
                   </Button>
                 </Link>
                 <Link
-                  href="/"
+                  href="/login"
                   className="block"
                   onClick={() => setIsMenuOpen(false)}
                 >
@@ -279,7 +279,7 @@ export function Sidebar() {
             <Home
               className={cn(
                 "w-6 h-6",
-                pathname === "/home" ? "text-white" : "text-zinc-500"
+                pathname === "/" ? "text-white" : "text-zinc-500"
               )}
             />
           }
@@ -335,7 +335,7 @@ export function Sidebar() {
           </>
         ) : (
           <>
-            <Link href="/" className="flex items-center justify-center">
+            <Link href="/login" className="flex items-center justify-center">
               <Button
                 variant="ghost"
                 size="sm"
@@ -344,7 +344,7 @@ export function Sidebar() {
                 Login
               </Button>
             </Link>
-            <Link href="/" className="flex items-center justify-center">
+            <Link href="/login" className="flex items-center justify-center">
               <Button
                 size="sm"
                 className="text-xs h-auto py-1 bg-gradient-to-r from-purple-500 to-pink-500 font-bold text-white"

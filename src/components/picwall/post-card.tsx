@@ -75,17 +75,22 @@ export function PostCard({
     setIsSaved(!isSaved);
   };
 
-  // Format hashtags in caption
   const formattedCaption = caption.split(" ").map((word, index) => {
     if (word.startsWith("#")) {
       return (
-        <Link
-          key={index}
-          href={`/explore/tags/${word.substring(1)}`}
-          className="text-blue-400 hover:underline"
-        >
-          {word}{" "}
-        </Link>
+        <>
+          {isLoggedIn ? (
+            <Link
+              key={index}
+              href={`/explore/tags/${word.substring(1)}`}
+              className="text-blue-400 hover:underline"
+            >
+              {word}{" "}
+            </Link>
+          ) : (
+            <span className="text-blue-400 cursor-default">{word} </span>
+          )}
+        </>
       );
     }
     return word + " ";
@@ -103,12 +108,18 @@ export function PostCard({
             </AvatarFallback>
           </Avatar>
           <div className="flex flex-col">
-            <Link
-              href={`/login`}
-              className="text-sm font-medium hover:underline"
-            >
-              {username}
-            </Link>
+            {isLoggedIn ? (
+              <Link
+                href={`/profile/${username}`}
+                className="text-sm font-medium hover:underline"
+              >
+                {username}
+              </Link>
+            ) : (
+              <span className="text-sm font-medium cursor-default">
+                {username}
+              </span>
+            )}
             <span className="text-xs text-zinc-500">{timeAgo}</span>
           </div>
         </div>
@@ -133,6 +144,7 @@ export function PostCard({
               size="icon"
               className={`h-9 w-9 rounded-full ${isMobile ? "h-8 w-8" : ""}`}
               onClick={handleLike}
+              disabled={!isLoggedIn}
             >
               <Heart
                 className={`${isMobile ? "h-5 w-5" : "h-6 w-6"} ${
@@ -145,6 +157,7 @@ export function PostCard({
               variant="ghost"
               size="icon"
               className={`h-9 w-9 rounded-full ${isMobile ? "h-8 w-8" : ""}`}
+              disabled={!isLoggedIn}
             >
               <MessageCircle
                 className={`${isMobile ? "h-5 w-5" : "h-6 w-6"}`}
@@ -155,6 +168,7 @@ export function PostCard({
               variant="ghost"
               size="icon"
               className={`h-9 w-9 rounded-full ${isMobile ? "h-8 w-8" : ""}`}
+              disabled={!isLoggedIn}
             >
               <Send className={`${isMobile ? "h-5 w-5" : "h-6 w-6"}`} />
               <span className="sr-only">Share</span>
@@ -166,6 +180,7 @@ export function PostCard({
             size="icon"
             className={`h-9 w-9 rounded-full ${isMobile ? "h-8 w-8" : ""}`}
             onClick={handleSave}
+            disabled={!isLoggedIn}
           >
             <Bookmark
               className={`${isMobile ? "h-5 w-5" : "h-6 w-6"} ${
@@ -187,7 +202,7 @@ export function PostCard({
         <div className="mb-2">
           <p className={`${isMobile ? "text-xs leading-normal" : "text-sm"}`}>
             <Link
-              href={`/profile/${username}`}
+              href={isLoggedIn ? `/profile/${username}` : "/login"}
               className="font-semibold mr-1 hover:underline"
             >
               {username}
@@ -216,7 +231,7 @@ export function PostCard({
                 className={`${isMobile ? "text-xs" : "text-sm"}`}
               >
                 <Link
-                  href={`/profile/${comment.username}`}
+                  href={isLoggedIn ? `/profile/${comment.username}` : "/login"}
                   className="font-semibold mr-1 hover:underline"
                 >
                   {comment.username}
@@ -250,7 +265,7 @@ export function PostCard({
         ) : (
           <div className="mt-3">
             <Link
-              href="/"
+              href="/login"
               className={`${
                 isMobile ? "text-xs" : "text-sm"
               } text-blue-400 hover:text-blue-300`}
