@@ -158,18 +158,6 @@ export default function LoginPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-username" className="text-white">
-                    Username
-                  </Label>
-                  <Input
-                    id="signup-username"
-                    type="text"
-                    placeholder="johndoe"
-                    required
-                    className="bg-zinc-800 border-zinc-700 text-white"
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label htmlFor="signup-email" className="text-white">
                     Email
                   </Label>
