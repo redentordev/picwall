@@ -2,8 +2,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Github } from "lucide-react";
+import Link from "next/link";
 import { signIn } from "@/lib/auth-client";
-import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -130,6 +130,18 @@ const LoginForm = () => {
           Google
         </Button>
       </div>
+
+      <p className="text-center text-sm text-zinc-400">
+        By logging in, you agree to our{" "}
+        <Link href="/terms" className="text-blue-400 hover:text-blue-300">
+          Terms of Service
+        </Link>{" "}
+        and{" "}
+        <Link href="/privacy" className="text-blue-400 hover:text-blue-300">
+          Privacy Policy
+        </Link>
+        .
+      </p>
     </>
   );
 };
