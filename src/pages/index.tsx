@@ -1,5 +1,10 @@
-import Image from "next/image";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Sidebar } from "@/components/picwall/sidebar";
+import { PostCard } from "@/components/picwall/post-card";
+import { useSession } from "@/lib/auth-client";
+import { faker } from "@faker-js/faker";
+import { useEffect, useRef, useCallback, useState } from "react";
+import useSWRInfinite from "swr/infinite";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -11,103 +16,190 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Generate dummy posts data
+const generateDummyPosts = (count: number, startIndex: number = 0) => {
+  return Array.from({ length: count }, (_, i) => {
+    const index = startIndex + i;
+    const id = (index + 1).toString();
+    const seed = index + 1;
+    const username = faker.internet.userName().toLowerCase();
+    const timeAgo = `${faker.number.int({ min: 1, max: 23 })}h`;
+    const likes = faker.number.int({ min: 50, max: 5000 });
+
+    const hashtags = [
+      "#photography",
+      "#inspiration",
+      "#picwall",
+      "#nature",
+      "#travel",
+      "#art",
+      "#design",
+    ];
+
+    const selectedHashtags = faker.helpers.arrayElements(
+      hashtags,
+      faker.number.int({ min: 1, max: 3 })
+    );
+
+    const caption = `${faker.lorem.paragraph(1)} ${selectedHashtags.join(" ")}`;
+
+    const commentCount = faker.number.int({ min: 1, max: 5 });
+    const comments = Array.from({ length: commentCount }, () => ({
+      username: faker.internet.userName().toLowerCase(),
+      comment: faker.lorem.sentence(),
+    }));
+
+    return {
+      id,
+      username,
+      userImage: `https://picsum.photos/seed/${seed}/800/800`,
+      timeAgo,
+      image: `https://picsum.photos/seed/${seed}/800/800`,
+      likes,
+      caption,
+      comments,
+    };
+  });
+};
+
+const PAGE_SIZE = 3;
+
 export default function Home() {
+  const { data: session } = useSession();
+  const isLoggedIn = !!session;
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Check if we're on a mobile device
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    // Initial check
+    checkIfMobile();
+
+    // Add event listener for window resize
+    window.addEventListener("resize", checkIfMobile);
+
+    // Cleanup
+    return () => window.removeEventListener("resize", checkIfMobile);
+  }, []);
+
+  const getKey = (pageIndex: number, previousPageData: any) => {
+    // Reached the end
+    if (previousPageData && !previousPageData.length) return null;
+
+    // Return the key for this page
+    return [`/api/posts`, pageIndex];
+  };
+
+  const fetcher = async ([_, pageIndex]: [string, number]) => {
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return generateDummyPosts(PAGE_SIZE, pageIndex * PAGE_SIZE);
+  };
+
+  const { data, error, isLoading, isValidating, size, setSize } =
+    useSWRInfinite(getKey, fetcher, {
+      revalidateFirstPage: false,
+      persistSize: true,
+    });
+
+  // Flatten the array of arrays into a single array of posts
+  const posts = data ? data.flat() : [];
+  const isEmpty = data?.[0]?.length === 0;
+  const isReachingEnd =
+    isEmpty || (data && data[data.length - 1]?.length < PAGE_SIZE);
+  const isLoadingMore =
+    isLoading || (size > 0 && data && typeof data[size - 1] === "undefined");
+
+  // Implement infinite scroll using Intersection Observer
+  const onIntersect = useCallback(
+    (entries: IntersectionObserverEntry[]) => {
+      const target = entries[0];
+      if (
+        target.isIntersecting &&
+        !isReachingEnd &&
+        !isLoadingMore &&
+        !isValidating
+      ) {
+        setSize(size + 1);
+      }
+    },
+    [isReachingEnd, isLoadingMore, isValidating, setSize, size]
+  );
+
+  useEffect(() => {
+    if (!loadMoreRef.current) return;
+
+    const observer = new IntersectionObserver(onIntersect, {
+      rootMargin: "0px 0px 400px 0px",
+    });
+
+    observer.observe(loadMoreRef.current);
+
+    return () => observer.disconnect();
+  }, [onIntersect]);
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/pages/index.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
+    <div
+      className={`flex min-h-screen bg-black text-white ${geistSans.variable} ${geistMono.variable}`}
+    >
+      {/* Only show sidebar on desktop */}
+      {!isMobile && <Sidebar />}
+
+      <main
+        className={`flex-1 mx-auto py-6 px-4 space-y-8 ${
+          isMobile ? "w-full pt-16 pb-20 max-w-lg" : "max-w-3xl"
+        }`}
+        suppressHydrationWarning
+      >
+        {isLoading && size === 1 ? (
+          <div className="text-center py-10">Loading posts...</div>
+        ) : error ? (
+          <div className="text-center py-10 text-red-500">
+            Error loading posts. Please try again.
+          </div>
+        ) : isEmpty ? (
+          <div className="text-center py-10">No posts found.</div>
+        ) : (
+          <>
+            {posts.map(post => (
+              <PostCard
+                key={post.id}
+                id={post.id}
+                username={post.username}
+                userImage={post.userImage}
+                timeAgo={post.timeAgo}
+                image={post.image}
+                likes={post.likes}
+                caption={post.caption}
+                comments={post.comments}
+                isLoggedIn={isLoggedIn}
+              />
+            ))}
+
+            <div ref={loadMoreRef} className="py-4 text-center">
+              {isLoadingMore ? (
+                <div className="text-zinc-400">Loading more posts...</div>
+              ) : isReachingEnd ? (
+                <div className="text-zinc-500">No more posts to load</div>
+              ) : (
+                <button
+                  onClick={() => setSize(size + 1)}
+                  className="px-4 py-2 bg-zinc-800 rounded-md hover:bg-zinc-700 transition-colors"
+                >
+                  Load more
+                </button>
+              )}
+            </div>
+          </>
+        )}
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+      {/* Show the mobile navigation on mobile devices */}
+      {isMobile && <Sidebar />}
     </div>
   );
 }

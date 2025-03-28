@@ -70,7 +70,7 @@ const SignupForm = () => {
           <Input
             id="signup-email"
             type="email"
-            placeholder="you@example.com"
+            placeholder="johndoe@example.com"
             required
             className="bg-zinc-800 border-zinc-700 text-white"
             {...register("email")}
