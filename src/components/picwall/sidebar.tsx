@@ -75,32 +75,11 @@ export function Sidebar() {
             {isLoggedIn && (
               <>
                 <NavItem
-                  href="/messages"
-                  icon={<MessageCircle className="w-5 h-5 mr-3" />}
-                  isActive={pathname === "/messages"}
-                >
-                  Messages
-                </NavItem>
-                <NavItem
-                  href="/notifications"
-                  icon={<Heart className="w-5 h-5 mr-3" />}
-                  isActive={pathname === "/notifications"}
-                >
-                  Notifications
-                </NavItem>
-                <NavItem
                   href="/create"
                   icon={<PlusSquare className="w-5 h-5 mr-3" />}
                   isActive={pathname === "/create"}
                 >
                   Create
-                </NavItem>
-                <NavItem
-                  href="/saved"
-                  icon={<Bookmark className="w-5 h-5 mr-3" />}
-                  isActive={pathname === "/saved"}
-                >
-                  Saved
                 </NavItem>
                 <NavItem
                   href="/profile"
@@ -195,36 +174,12 @@ export function Sidebar() {
             {isLoggedIn && (
               <>
                 <MobileNavItem
-                  href="/messages"
-                  icon={<MessageCircle className="w-5 h-5" />}
-                  isActive={pathname === "/messages"}
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Messages
-                </MobileNavItem>
-                <MobileNavItem
-                  href="/notifications"
-                  icon={<Heart className="w-5 h-5" />}
-                  isActive={pathname === "/notifications"}
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Notifications
-                </MobileNavItem>
-                <MobileNavItem
                   href="/create"
                   icon={<PlusSquare className="w-5 h-5" />}
                   isActive={pathname === "/create"}
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Create
-                </MobileNavItem>
-                <MobileNavItem
-                  href="/saved"
-                  icon={<Bookmark className="w-5 h-5" />}
-                  isActive={pathname === "/saved"}
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Saved
                 </MobileNavItem>
                 <MobileNavItem
                   href="/profile"
@@ -312,14 +267,12 @@ export function Sidebar() {
         {isLoggedIn ? (
           <>
             <MobileNavIcon
-              href="/notifications"
+              href="/create"
               icon={
-                <Heart
+                <PlusSquare
                   className={cn(
                     "w-6 h-6",
-                    pathname === "/notifications"
-                      ? "text-white"
-                      : "text-zinc-500"
+                    pathname === "/create" ? "text-white" : "text-zinc-500"
                   )}
                 />
               }
