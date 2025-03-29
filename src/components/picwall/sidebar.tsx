@@ -18,6 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { signOut, useSession } from "@/lib/auth-client";
+import { CreatePostModal } from "./create-post-modal";
 
 export function Sidebar() {
   const { data: session } = useSession();
@@ -27,6 +28,7 @@ export function Sidebar() {
   const isLoggedIn = !!session;
   const [isMobile, setIsMobile] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   useEffect(() => {
     const checkIfMobile = () => {
@@ -40,88 +42,109 @@ export function Sidebar() {
     return () => window.removeEventListener("resize", checkIfMobile);
   }, []);
 
+  const handleOpenCreateModal = () => {
+    setIsCreateModalOpen(true);
+  };
+
+  const handleCloseCreateModal = () => {
+    setIsCreateModalOpen(false);
+  };
+
   if (!isMobile) {
     return (
-      <div className="w-64 border-r border-zinc-800 h-screen sticky top-0 flex flex-col">
-        <div className="p-6">
-          <Link href="/" className="text-2xl font-bold">
-            Picwall
-          </Link>
-        </div>
+      <>
+        <div className="w-64 border-r border-zinc-800 h-screen sticky top-0 flex flex-col">
+          <div className="p-6">
+            <Link href="/" className="text-2xl font-bold">
+              Picwall
+            </Link>
+          </div>
 
-        <nav className="flex-1 px-3">
-          <div className="space-y-1">
-            <NavItem
-              href="/"
-              icon={<Home className="w-5 h-5 mr-3" />}
-              isActive={pathname === "/"}
-            >
-              Home
-            </NavItem>
-            <NavItem
-              href="/search"
-              icon={<Search className="w-5 h-5 mr-3" />}
-              isActive={pathname === "/search"}
-            >
-              Search
-            </NavItem>
-            <NavItem
-              href="/explore"
-              icon={<Compass className="w-5 h-5 mr-3" />}
-              isActive={pathname === "/explore"}
-            >
-              Explore
-            </NavItem>
-            {isLoggedIn && (
-              <>
-                <NavItem
-                  href="/create"
-                  icon={<PlusSquare className="w-5 h-5 mr-3" />}
-                  isActive={pathname === "/create"}
-                >
-                  Create
-                </NavItem>
-                <NavItem
-                  href="/profile"
-                  icon={<User className="w-5 h-5 mr-3" />}
-                  isActive={pathname === "/profile"}
-                >
-                  Profile
-                </NavItem>
-              </>
+          <nav className="flex-1 px-3">
+            <div className="space-y-1">
+              <NavItem
+                href="/"
+                icon={<Home className="w-5 h-5 mr-3" />}
+                isActive={pathname === "/"}
+              >
+                Home
+              </NavItem>
+              <NavItem
+                href="/search"
+                icon={<Search className="w-5 h-5 mr-3" />}
+                isActive={pathname === "/search"}
+              >
+                Search
+              </NavItem>
+              <NavItem
+                href="/explore"
+                icon={<Compass className="w-5 h-5 mr-3" />}
+                isActive={pathname === "/explore"}
+              >
+                Explore
+              </NavItem>
+              {isLoggedIn && (
+                <>
+                  <NavItem
+                    href="#"
+                    icon={<PlusSquare className="w-5 h-5 mr-3" />}
+                    isActive={false}
+                    onClick={handleOpenCreateModal}
+                  >
+                    Create
+                  </NavItem>
+                  <NavItem
+                    href="/profile"
+                    icon={<User className="w-5 h-5 mr-3" />}
+                    isActive={pathname === "/profile"}
+                  >
+                    Profile
+                  </NavItem>
+                </>
+              )}
+            </div>
+          </nav>
+
+          <div className="p-4 mt-auto border-t border-zinc-800">
+            {isLoggedIn ? (
+              <Button
+                onClick={async () => {
+                  await signOut();
+                  router.push("/login");
+                }}
+                variant="ghost"
+                className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-zinc-800"
+              >
+                <LogOut className="w-5 h-5 mr-3" />
+                Log out
+              </Button>
+            ) : (
+              <div className="space-y-2">
+                <Link href="/login" className="block">
+                  <Button variant="ghost" className="w-full">
+                    Log in
+                  </Button>
+                </Link>
+                <Link href="/login" className="block">
+                  <Button className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 font-bold text-white">
+                    Sign up
+                  </Button>
+                </Link>
+              </div>
             )}
           </div>
-        </nav>
-
-        <div className="p-4 mt-auto border-t border-zinc-800">
-          {isLoggedIn ? (
-            <Button
-              onClick={async () => {
-                await signOut();
-                router.push("/login");
-              }}
-              variant="ghost"
-              className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-zinc-800"
-            >
-              <LogOut className="w-5 h-5 mr-3" />
-              Log out
-            </Button>
-          ) : (
-            <div className="space-y-2">
-              <Link href="/login" className="block">
-                <Button variant="ghost" className="w-full">
-                  Log in
-                </Button>
-              </Link>
-              <Link href="/login" className="block">
-                <Button className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 font-bold text-white">
-                  Sign up
-                </Button>
-              </Link>
-            </div>
-          )}
         </div>
-      </div>
+
+        {/* Create Post Modal - Desktop */}
+        {isLoggedIn && (
+          <CreatePostModal
+            isOpen={isCreateModalOpen}
+            onClose={handleCloseCreateModal}
+            username={session?.user?.name || "User"}
+            userImage={session?.user?.image || ""}
+          />
+        )}
+      </>
     );
   }
 
@@ -174,10 +197,13 @@ export function Sidebar() {
             {isLoggedIn && (
               <>
                 <MobileNavItem
-                  href="/create"
+                  href="#"
                   icon={<PlusSquare className="w-5 h-5" />}
-                  isActive={pathname === "/create"}
-                  onClick={() => setIsMenuOpen(false)}
+                  isActive={false}
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    handleOpenCreateModal();
+                  }}
                 >
                   Create
                 </MobileNavItem>
@@ -198,7 +224,11 @@ export function Sidebar() {
               <Button
                 variant="ghost"
                 className="w-full justify-center text-red-400 hover:text-red-300 hover:bg-zinc-800"
-                onClick={() => setIsMenuOpen(false)}
+                onClick={async () => {
+                  setIsMenuOpen(false);
+                  await signOut();
+                  router.push("/login");
+                }}
               >
                 <LogOut className="w-5 h-5 mr-2" />
                 Log out
@@ -229,10 +259,10 @@ export function Sidebar() {
         </div>
       )}
 
-      {/* Mobile bottom nav */}
+      {/* Mobile bottom nav - Rearranged to put Create in the middle */}
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-zinc-900 border-t border-zinc-800 py-2 px-2 grid grid-cols-5 items-center">
         <MobileNavIcon
-          href="/home"
+          href="/"
           icon={
             <Home
               className={cn(
@@ -253,64 +283,84 @@ export function Sidebar() {
             />
           }
         />
+        {isLoggedIn ? (
+          <button
+            onClick={handleOpenCreateModal}
+            className="flex items-center justify-center"
+          >
+            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-pink-500">
+              <PlusSquare className="w-6 h-6 text-white" />
+            </div>
+          </button>
+        ) : (
+          <MobileNavIcon
+            href="/explore"
+            icon={
+              <Compass
+                className={cn(
+                  "w-6 h-6",
+                  pathname === "/explore" ? "text-white" : "text-zinc-500"
+                )}
+              />
+            }
+          />
+        )}
         <MobileNavIcon
-          href="/explore"
+          href={isLoggedIn ? "/notifications" : "/explore"}
           icon={
-            <Compass
-              className={cn(
-                "w-6 h-6",
-                pathname === "/explore" ? "text-white" : "text-zinc-500"
-              )}
-            />
+            isLoggedIn ? (
+              <Heart
+                className={cn(
+                  "w-6 h-6",
+                  pathname === "/notifications" ? "text-white" : "text-zinc-500"
+                )}
+              />
+            ) : (
+              <Link href="/login" className="flex items-center justify-center">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs h-auto py-1 text-zinc-500 hover:text-white"
+                >
+                  Login
+                </Button>
+              </Link>
+            )
           }
         />
-        {isLoggedIn ? (
-          <>
-            <MobileNavIcon
-              href="/create"
-              icon={
-                <PlusSquare
-                  className={cn(
-                    "w-6 h-6",
-                    pathname === "/create" ? "text-white" : "text-zinc-500"
-                  )}
-                />
-              }
-            />
-            <MobileNavIcon
-              href="/profile"
-              icon={
-                <User
-                  className={cn(
-                    "w-6 h-6",
-                    pathname === "/profile" ? "text-white" : "text-zinc-500"
-                  )}
-                />
-              }
-            />
-          </>
-        ) : (
-          <>
-            <Link href="/login" className="flex items-center justify-center">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs h-auto py-1 text-zinc-500 hover:text-white"
-              >
-                Login
-              </Button>
-            </Link>
-            <Link href="/login" className="flex items-center justify-center">
-              <Button
-                size="sm"
-                className="text-xs h-auto py-1 bg-gradient-to-r from-purple-500 to-pink-500 font-bold text-white"
-              >
-                Sign up
-              </Button>
-            </Link>
-          </>
-        )}
+        <MobileNavIcon
+          href={isLoggedIn ? "/profile" : "/login"}
+          icon={
+            isLoggedIn ? (
+              <User
+                className={cn(
+                  "w-6 h-6",
+                  pathname === "/profile" ? "text-white" : "text-zinc-500"
+                )}
+              />
+            ) : (
+              <Link href="/login" className="flex items-center justify-center">
+                <Button
+                  size="sm"
+                  className="text-xs h-auto py-1 bg-gradient-to-r from-purple-500 to-pink-500 font-bold text-white"
+                >
+                  Sign up
+                </Button>
+              </Link>
+            )
+          }
+        />
       </div>
+
+      {/* Create Post Modal - Mobile */}
+      {isLoggedIn && (
+        <CreatePostModal
+          isOpen={isCreateModalOpen}
+          onClose={handleCloseCreateModal}
+          username={session?.user?.name || "User"}
+          userImage={session?.user?.image || ""}
+        />
+      )}
     </>
   );
 }
@@ -320,9 +370,27 @@ interface NavItemProps {
   icon: React.ReactNode;
   children: React.ReactNode;
   isActive: boolean;
+  onClick?: () => void;
 }
 
-function NavItem({ href, icon, children, isActive }: NavItemProps) {
+function NavItem({ href, icon, children, isActive, onClick }: NavItemProps) {
+  if (onClick) {
+    return (
+      <button
+        onClick={onClick}
+        className={cn(
+          "flex items-center w-full px-3 py-3 text-sm rounded-md transition-colors text-left",
+          isActive
+            ? "bg-zinc-800 text-white font-medium"
+            : "text-zinc-400 hover:text-white hover:bg-zinc-800"
+        )}
+      >
+        {icon}
+        {children}
+      </button>
+    );
+  }
+
   return (
     <Link
       href={href}
@@ -350,6 +418,25 @@ function MobileNavItem({
   isActive,
   onClick,
 }: MobileNavItemProps) {
+  if (onClick) {
+    return (
+      <button
+        onClick={onClick}
+        className={cn(
+          "flex items-center w-full px-4 py-4 text-base rounded-md transition-colors text-left",
+          isActive
+            ? "bg-zinc-800 text-white font-medium"
+            : "text-zinc-400 hover:text-white hover:bg-zinc-800"
+        )}
+      >
+        <div className="w-6 h-6 mr-4 flex items-center justify-center">
+          {icon}
+        </div>
+        {children}
+      </button>
+    );
+  }
+
   return (
     <Link
       href={href}
@@ -372,9 +459,21 @@ function MobileNavItem({
 interface MobileNavIconProps {
   href: string;
   icon: React.ReactNode;
+  onClick?: () => void;
 }
 
-function MobileNavIcon({ href, icon }: MobileNavIconProps) {
+function MobileNavIcon({ href, icon, onClick }: MobileNavIconProps) {
+  if (onClick) {
+    return (
+      <button
+        onClick={onClick}
+        className="flex items-center justify-center py-1 w-full"
+      >
+        {icon}
+      </button>
+    );
+  }
+
   return (
     <Link href={href} className="flex items-center justify-center py-1 w-full">
       {icon}
