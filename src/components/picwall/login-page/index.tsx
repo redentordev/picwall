@@ -35,7 +35,11 @@ export default function LoginPage() {
       <div className="flex w-full items-center justify-center md:w-1/2 bg-black p-8 my-auto">
         <div className="mx-auto w-full max-w-md space-y-8">
           <div className="flex flex-col items-center space-y-2 text-center">
-            <h1 className="text-4xl font-bold text-white md:hidden">Picwall</h1>
+            <Link href="/">
+              <h1 className="text-4xl font-bold text-white md:hidden">
+                Picwall
+              </h1>
+            </Link>
           </div>
 
           <Tabs defaultValue="login" className="w-full">

@@ -153,6 +153,7 @@ export function Sidebar() {
           Picwall
         </Link>
         <Button
+          className="hidden"
           variant="ghost"
           size="icon"
           onClick={() => setIsMenuOpen(!isMenuOpen)}

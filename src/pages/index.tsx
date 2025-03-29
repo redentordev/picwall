@@ -5,6 +5,7 @@ import { useSession } from "@/lib/auth-client";
 import { faker } from "@faker-js/faker";
 import { useEffect, useRef, useCallback, useState } from "react";
 import useSWRInfinite from "swr/infinite";
+import { NextSeo } from "next-seo";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -70,32 +71,25 @@ export default function Home() {
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Check if we're on a mobile device
   useEffect(() => {
     const checkIfMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
 
-    // Initial check
     checkIfMobile();
 
-    // Add event listener for window resize
     window.addEventListener("resize", checkIfMobile);
 
-    // Cleanup
     return () => window.removeEventListener("resize", checkIfMobile);
   }, []);
 
   const getKey = (pageIndex: number, previousPageData: any) => {
-    // Reached the end
     if (previousPageData && !previousPageData.length) return null;
 
-    // Return the key for this page
     return [`/api/posts`, pageIndex];
   };
 
   const fetcher = async ([_, pageIndex]: [string, number]) => {
-    // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 500));
     return generateDummyPosts(PAGE_SIZE, pageIndex * PAGE_SIZE);
   };
@@ -106,7 +100,6 @@ export default function Home() {
       persistSize: true,
     });
 
-  // Flatten the array of arrays into a single array of posts
   const posts = data ? data.flat() : [];
   const isEmpty = data?.[0]?.length === 0;
   const isReachingEnd =
@@ -114,7 +107,6 @@ export default function Home() {
   const isLoadingMore =
     isLoading || (size > 0 && data && typeof data[size - 1] === "undefined");
 
-  // Implement infinite scroll using Intersection Observer
   const onIntersect = useCallback(
     (entries: IntersectionObserverEntry[]) => {
       const target = entries[0];
@@ -143,63 +135,72 @@ export default function Home() {
   }, [onIntersect]);
 
   return (
-    <div
-      className={`flex min-h-screen bg-black text-white ${geistSans.variable} ${geistMono.variable}`}
-    >
-      {/* Only show sidebar on desktop */}
-      {!isMobile && <Sidebar />}
-
-      <main
-        className={`flex-1 mx-auto py-6 px-4 space-y-8 ${
-          isMobile ? "w-full pt-16 pb-20 max-w-lg" : "max-w-3xl"
-        }`}
-        suppressHydrationWarning
+    <>
+      <NextSeo
+        title="Picwall - Share your moments, connect with friends, and discover amazing photos from around the world."
+        description="Picwall is a social media platform for sharing photos and connecting with friends."
+        canonical="https://picwall.com"
+        openGraph={{
+          url: "https://picwall.com",
+          title: "Picwall",
+        }}
+      />
+      <div
+        className={`flex min-h-screen bg-black text-white ${geistSans.variable} ${geistMono.variable}`}
       >
-        {isLoading && size === 1 ? (
-          <div className="text-center py-10">Loading posts...</div>
-        ) : error ? (
-          <div className="text-center py-10 text-red-500">
-            Error loading posts. Please try again.
-          </div>
-        ) : isEmpty ? (
-          <div className="text-center py-10">No posts found.</div>
-        ) : (
-          <>
-            {posts.map(post => (
-              <PostCard
-                key={post.id}
-                id={post.id}
-                username={post.username}
-                userImage={post.userImage}
-                timeAgo={post.timeAgo}
-                image={post.image}
-                likes={post.likes}
-                caption={post.caption}
-                comments={post.comments}
-                isLoggedIn={isLoggedIn}
-              />
-            ))}
+        {!isMobile && <Sidebar />}
 
-            <div ref={loadMoreRef} className="py-4 text-center">
-              {isLoadingMore ? (
-                <div className="text-zinc-400">Loading more posts...</div>
-              ) : isReachingEnd ? (
-                <div className="text-zinc-500">No more posts to load</div>
-              ) : (
-                <button
-                  onClick={() => setSize(size + 1)}
-                  className="px-4 py-2 bg-zinc-800 rounded-md hover:bg-zinc-700 transition-colors"
-                >
-                  Load more
-                </button>
-              )}
+        <main
+          className={`flex-1 mx-auto py-6 px-4 space-y-8 ${
+            isMobile ? "w-full pt-16 pb-20 max-w-lg" : "max-w-3xl"
+          }`}
+          suppressHydrationWarning
+        >
+          {isLoading && size === 1 ? (
+            <div className="text-center py-10">Loading posts...</div>
+          ) : error ? (
+            <div className="text-center py-10 text-red-500">
+              Error loading posts. Please try again.
             </div>
-          </>
-        )}
-      </main>
+          ) : isEmpty ? (
+            <div className="text-center py-10">No posts found.</div>
+          ) : (
+            <>
+              {posts.map(post => (
+                <PostCard
+                  key={post.id}
+                  id={post.id}
+                  username={post.username}
+                  userImage={post.userImage}
+                  timeAgo={post.timeAgo}
+                  image={post.image}
+                  likes={post.likes}
+                  caption={post.caption}
+                  comments={post.comments}
+                  isLoggedIn={isLoggedIn}
+                />
+              ))}
 
-      {/* Show the mobile navigation on mobile devices */}
-      {isMobile && <Sidebar />}
-    </div>
+              <div ref={loadMoreRef} className="py-4 text-center">
+                {isLoadingMore ? (
+                  <div className="text-zinc-400">Loading more posts...</div>
+                ) : isReachingEnd ? (
+                  <div className="text-zinc-500">No more posts to load</div>
+                ) : (
+                  <button
+                    onClick={() => setSize(size + 1)}
+                    className="px-4 py-2 bg-zinc-800 rounded-md hover:bg-zinc-700 transition-colors"
+                  >
+                    Load more
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+        </main>
+
+        {isMobile && <Sidebar />}
+      </div>
+    </>
   );
 }
