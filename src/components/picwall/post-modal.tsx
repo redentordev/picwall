@@ -42,6 +42,9 @@ export function PostModal({
   const commentInputRef = useRef<HTMLInputElement>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [showComments, setShowComments] = useState(false);
+  const commentPanelRef = useRef<HTMLDivElement>(null);
+  const dragStartY = useRef<number | null>(null);
+  const currentTranslateY = useRef<number>(0);
 
   // Check if we're on a mobile device
   useEffect(() => {
@@ -123,6 +126,45 @@ export function PostModal({
 
   const toggleComments = () => {
     setShowComments(!showComments);
+  };
+
+  // Handle drag start
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!commentPanelRef.current) return;
+    dragStartY.current = e.touches[0].clientY;
+    currentTranslateY.current = 0;
+    commentPanelRef.current.style.transition = "none";
+  };
+
+  // Handle drag movement
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (dragStartY.current === null || !commentPanelRef.current) return;
+
+    const currentY = e.touches[0].clientY;
+    const deltaY = currentY - dragStartY.current;
+
+    // Only allow dragging downward
+    if (deltaY < 0) return;
+
+    currentTranslateY.current = deltaY;
+    commentPanelRef.current.style.transform = `translateY(${deltaY}px)`;
+  };
+
+  // Handle drag end
+  const handleTouchEnd = () => {
+    if (!commentPanelRef.current || dragStartY.current === null) return;
+
+    commentPanelRef.current.style.transition = "transform 0.3s ease-in-out";
+
+    // If dragged more than 100px down, close the panel
+    if (currentTranslateY.current > 100) {
+      setShowComments(false);
+    } else {
+      // Otherwise snap back
+      commentPanelRef.current.style.transform = "translateY(0)";
+    }
+
+    dragStartY.current = null;
   };
 
   return (
@@ -360,6 +402,7 @@ export function PostModal({
 
             {/* Comment overlay panel */}
             <div
+              ref={commentPanelRef}
               className={cn(
                 "fixed inset-x-0 bottom-0 bg-zinc-900 rounded-t-xl shadow-lg z-10 transition-transform duration-300 ease-in-out transform",
                 showComments ? "translate-y-0" : "translate-y-full"
@@ -368,9 +411,17 @@ export function PostModal({
                 maxHeight: "70vh",
                 height: "70vh",
               }}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
             >
               {/* Pull indicator */}
-              <div className="flex justify-center p-2" onClick={toggleComments}>
+              <div
+                className="flex justify-center p-2 cursor-grab active:cursor-grabbing"
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+              >
                 <div className="w-10 h-1 bg-zinc-700 rounded-full" />
               </div>
 
