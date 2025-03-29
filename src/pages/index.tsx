@@ -17,7 +17,6 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Generate dummy posts data
 const generateDummyPosts = (count: number, startIndex: number = 0) => {
   return Array.from({ length: count }, (_, i) => {
     const index = startIndex + i;

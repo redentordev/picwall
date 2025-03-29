@@ -1,7 +1,7 @@
 import type React from "react";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Home,
@@ -17,10 +17,12 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
-import { useSession } from "@/lib/auth-client";
+import { signOut, useSession } from "@/lib/auth-client";
 
 export function Sidebar() {
   const { data: session } = useSession();
+  const router = useRouter();
+
   const pathname = usePathname();
   const isLoggedIn = !!session;
   const [isMobile, setIsMobile] = useState(false);
@@ -31,17 +33,13 @@ export function Sidebar() {
       setIsMobile(window.innerWidth < 768);
     };
 
-    // Initial check
     checkIfMobile();
 
-    // Add event listener for window resize
     window.addEventListener("resize", checkIfMobile);
 
-    // Cleanup
     return () => window.removeEventListener("resize", checkIfMobile);
   }, []);
 
-  // Desktop sidebar
   if (!isMobile) {
     return (
       <div className="w-64 border-r border-zinc-800 h-screen sticky top-0 flex flex-col">
@@ -119,6 +117,10 @@ export function Sidebar() {
         <div className="p-4 mt-auto border-t border-zinc-800">
           {isLoggedIn ? (
             <Button
+              onClick={async () => {
+                await signOut();
+                router.push("/login");
+              }}
               variant="ghost"
               className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-zinc-800"
             >
