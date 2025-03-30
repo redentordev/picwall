@@ -50,7 +50,6 @@ async function GET(req: NextApiRequest, res: NextApiResponse) {
   try {
     const { id, userId, limit = 10, skip = 0 } = req.query;
     
-    // Get a specific post by ID
     if (id) {
       const post = await Post.findById(id);
       if (!post) {
@@ -59,7 +58,6 @@ async function GET(req: NextApiRequest, res: NextApiResponse) {
       return res.status(200).json({ post });
     }
     
-    // Get posts by user ID
     if (userId) {
       const posts = await Post.find({ userId })
         .sort({ createdAt: -1 })
@@ -69,7 +67,6 @@ async function GET(req: NextApiRequest, res: NextApiResponse) {
       return res.status(200).json({ posts });
     }
     
-    // Get all posts
     const posts = await Post.find({})
       .sort({ createdAt: -1 })
       .limit(Number(limit))
@@ -111,7 +108,6 @@ async function PUT(req: NextApiRequest, res: NextApiResponse) {
       return res.status(200).json({ success: true, post });
     }
     
-    // Handle comment action
     if (action === 'comment' && userId) {
       const { comment } = req.body;
       if (!comment) {
