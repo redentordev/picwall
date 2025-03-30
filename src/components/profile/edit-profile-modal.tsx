@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
+import Image from "next/image";
 import { User } from "@/types";
 import {
   Dialog,
@@ -12,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2 } from "lucide-react";
+import { Loader2, Upload, Camera } from "lucide-react";
 
 interface EditProfileModalProps {
   user: User;
@@ -35,6 +36,12 @@ export default function EditProfileModal({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadFeedback, setUploadFeedback] = useState("");
+  const [imagePreview, setImagePreview] = useState<string | null>(
+    user.image || null
+  );
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -44,6 +51,100 @@ export default function EditProfileModal({
       ...prev,
       [name]: value,
     }));
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith("image/")) {
+        setError("Please select an image file");
+        return;
+      }
+
+      setIsUploading(true);
+      setUploadFeedback("Uploading your image...");
+      setError("");
+
+      try {
+        // Read the file as data URL
+        const reader = new FileReader();
+        reader.onload = async event => {
+          const imageDataUrl = event.target?.result as string;
+          setImagePreview(imageDataUrl);
+
+          // Upload to server
+          await uploadImage(imageDataUrl);
+        };
+        reader.readAsDataURL(file);
+      } catch (err) {
+        setError("Failed to read the image file");
+        setIsUploading(false);
+      }
+    }
+  };
+
+  const uploadImage = async (imageDataUrl: string) => {
+    try {
+      const uploadResponse = await fetch("/api/upload", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ image: imageDataUrl }),
+      });
+
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json();
+        throw new Error(errorData.error || "Failed to upload image");
+      }
+
+      const uploadData = await uploadResponse.json();
+
+      // Update form state with the new image URL
+      setFormState(prev => ({
+        ...prev,
+        image: uploadData.imageUrl,
+      }));
+
+      setUploadFeedback("Image uploaded successfully!");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to upload image");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith("image/")) {
+      setIsUploading(true);
+      setUploadFeedback("Uploading your image...");
+      setError("");
+
+      try {
+        const reader = new FileReader();
+        reader.onload = async event => {
+          const imageDataUrl = event.target?.result as string;
+          setImagePreview(imageDataUrl);
+          await uploadImage(imageDataUrl);
+        };
+        reader.readAsDataURL(file);
+      } catch (err) {
+        setError("Failed to read the image file");
+        setIsUploading(false);
+      }
+    } else {
+      setError("Please drop an image file");
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -82,7 +183,7 @@ export default function EditProfileModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={isOpen => !isOpen && onClose()}>
-      <DialogContent className="bg-zinc-900 text-white border-zinc-800 sm:max-w-md">
+      <DialogContent className="sm:max-w-[500px] bg-zinc-900 text-white border-zinc-800">
         <DialogHeader>
           <DialogTitle>Edit Profile</DialogTitle>
           <DialogDescription className="text-zinc-400">
@@ -96,7 +197,7 @@ export default function EditProfileModal({
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="name">Name</Label>
             <Input
@@ -127,27 +228,95 @@ export default function EditProfileModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="image">Profile Image URL</Label>
-            <Input
-              id="image"
-              name="image"
-              value={formState.image}
-              onChange={handleChange}
-              className="bg-zinc-800 border-zinc-700"
-              placeholder="https://example.com/your-image.jpg"
-            />
+            <Label>Profile Image</Label>
+            <div
+              className="flex flex-col items-center justify-center p-6 border border-dashed border-zinc-700 rounded-lg"
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
+            >
+              <div className="flex justify-center mb-4">
+                <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-purple-500">
+                  {imagePreview ? (
+                    <>
+                      <Image
+                        src={imagePreview}
+                        alt="Profile preview"
+                        fill
+                        className="object-cover"
+                      />
+                      {isUploading && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/70">
+                          <Loader2 className="h-6 w-6 animate-spin text-white" />
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
+                      <Camera className="h-8 w-8 text-zinc-400" />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {uploadFeedback && (
+                <p
+                  className={`text-sm mb-3 ${
+                    isUploading ? "text-blue-400" : "text-green-400"
+                  }`}
+                >
+                  {uploadFeedback}
+                </p>
+              )}
+
+              <div className="w-full max-w-xs">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={triggerFileInput}
+                  disabled={isUploading}
+                  className="w-full flex items-center justify-center"
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload Image
+                </Button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                />
+
+                {/* Hidden input to store the image URL */}
+                <input
+                  id="image"
+                  name="image"
+                  type="hidden"
+                  value={formState.image}
+                  onChange={handleChange}
+                />
+              </div>
+              <p className="text-xs text-zinc-500 mt-2">
+                Drag & drop an image or use the upload button
+              </p>
+            </div>
           </div>
 
-          <DialogFooter className="pt-2">
+          <DialogFooter className="sm:justify-between">
             <Button
               type="button"
               variant="outline"
               onClick={onClose}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isUploading}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button
+              type="submit"
+              disabled={isSubmitting || isUploading}
+              className="w-full sm:w-auto"
+            >
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
