@@ -257,136 +257,143 @@ export function CreatePostModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[600px] md:max-w-[700px] p-0 bg-zinc-900 border-zinc-800 text-white overflow-hidden w-[95vw] max-h-[90vh]">
-        <DialogHeader className="border-b border-zinc-800 p-4">
+      <DialogContent className="sm:max-w-[600px] md:max-w-[700px] p-0 bg-zinc-900 border-zinc-800 text-white overflow-hidden w-[95vw] max-h-[90vh] flex flex-col">
+        <DialogHeader className="border-b border-zinc-800 p-4 flex-shrink-0">
           <DialogTitle className="text-center text-white">
             Create new post
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          {/* Upload Tab */}
-          <TabsContent value="upload" className="m-0">
-            <div
-              className="flex flex-col items-center justify-center p-10 h-[400px] md:h-[500px]"
-              onDragOver={handleDragOver}
-              onDrop={handleDrop}
-            >
-              <ImageIcon className="h-16 w-16 text-zinc-500 mb-4" />
-              <h3 className="text-xl font-semibold mb-2">Drag photos here</h3>
-              <p className="text-zinc-400 text-center mb-6">
-                Share your moments with friends and followers
-              </p>
-              <Button
-                onClick={triggerFileInput}
-                className="w-full max-w-[230px] bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 font-bold text-white cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:from-purple-700 active:to-pink-700"
+        <div className="flex-1 overflow-y-auto">
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full"
+          >
+            {/* Upload Tab */}
+            <TabsContent value="upload" className="m-0">
+              <div
+                className="flex flex-col items-center justify-center p-10 min-h-[300px]"
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
               >
-                Upload your image
-              </Button>
-              <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                accept="image/*"
-                onChange={handleFileChange}
-              />
-            </div>
-          </TabsContent>
-
-          {/* Caption Tab */}
-          <TabsContent value="caption" className="m-0">
-            <form
-              onSubmit={async e => {
-                e.preventDefault();
-                try {
-                  const formData = watch();
-                  console.log("Form data before submission:", formData);
-                  await handleSubmit(onSubmit)();
-                } catch (error) {
-                  console.error("Form submission error:", error);
-                  setFeedbackMessage({
-                    type: "error",
-                    message: "An error occurred while submitting the form",
-                  });
-                }
-              }}
-              id="post-form"
-            >
-              <div className="flex flex-col md:flex-row h-[400px] md:h-[500px]">
-                {/* Image Preview */}
-                <div className="relative w-full md:w-1/2 h-[250px] md:h-full bg-black flex items-center justify-center">
-                  {selectedImage && (
-                    <Image
-                      src={selectedImage || "/placeholder.svg"}
-                      alt="Post preview"
-                      fill
-                      className="object-contain"
-                    />
-                  )}
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute top-2 left-2 h-8 w-8 rounded-full bg-black/50 text-white hover:bg-black/70"
-                    onClick={() => {
-                      setSelectedImage(null);
-                      setValue("image", "");
-                      setActiveTab("upload");
-                    }}
-                  >
-                    <X className="h-4 w-4" />
-                    <span className="sr-only">Remove image</span>
-                  </Button>
-
-                  {isUploading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/70">
-                      <Loader2 className="h-8 w-8 animate-spin text-white" />
-                    </div>
-                  )}
-                </div>
-
-                {/* Caption Input */}
-                <div className="w-full md:w-1/2 p-4 flex flex-col">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Avatar className="w-8 h-8 border border-zinc-700">
-                      <AvatarImage src={userImage} alt={username} />
-                      <AvatarFallback>
-                        {username.substring(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="font-medium text-sm">{username}</span>
-                  </div>
-
-                  <Textarea
-                    placeholder="Write a caption..."
-                    className="flex-1 resize-none bg-transparent border-none text-white focus-visible:ring-0 focus-visible:ring-offset-0 p-0"
-                    maxLength={MAX_CAPTION_LENGTH}
-                    {...register("caption")}
-                  />
-                  {errors.caption && (
-                    <p className="text-red-400 text-xs mt-1">
-                      {errors.caption.message}
-                    </p>
-                  )}
-
-                  <div className="flex justify-end items-center mt-2 text-zinc-400 text-xs">
-                    <span>
-                      {caption?.length || 0}/{MAX_CAPTION_LENGTH}
-                    </span>
-                  </div>
-                </div>
+                <ImageIcon className="h-16 w-16 text-zinc-500 mb-4" />
+                <h3 className="text-xl font-semibold mb-2">Drag photos here</h3>
+                <p className="text-zinc-400 text-center mb-6">
+                  Share your moments with friends and followers
+                </p>
+                <Button
+                  onClick={triggerFileInput}
+                  className="w-full max-w-[230px] bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 font-bold text-white cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:from-purple-700 active:to-pink-700"
+                >
+                  Upload your image
+                </Button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                />
               </div>
+            </TabsContent>
 
-              {/* Hidden input for image URL */}
-              <input type="hidden" {...register("image")} />
-            </form>
-          </TabsContent>
-        </Tabs>
+            {/* Caption Tab */}
+            <TabsContent value="caption" className="m-0">
+              <form
+                onSubmit={async e => {
+                  e.preventDefault();
+                  try {
+                    const formData = watch();
+                    console.log("Form data before submission:", formData);
+                    await handleSubmit(onSubmit)();
+                  } catch (error) {
+                    console.error("Form submission error:", error);
+                    setFeedbackMessage({
+                      type: "error",
+                      message: "An error occurred while submitting the form",
+                    });
+                  }
+                }}
+                id="post-form"
+                className="flex flex-col"
+              >
+                <div className="flex flex-col md:flex-row min-h-[300px]">
+                  {/* Image Preview */}
+                  <div className="relative w-full md:w-1/2 h-[250px] md:h-[350px] bg-black flex items-center justify-center">
+                    {selectedImage && (
+                      <Image
+                        src={selectedImage || "/placeholder.svg"}
+                        alt="Post preview"
+                        fill
+                        className="object-contain"
+                      />
+                    )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-2 left-2 h-8 w-8 rounded-full bg-black/50 text-white hover:bg-black/70"
+                      onClick={() => {
+                        setSelectedImage(null);
+                        setValue("image", "");
+                        setActiveTab("upload");
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                      <span className="sr-only">Remove image</span>
+                    </Button>
+
+                    {isUploading && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/70">
+                        <Loader2 className="h-8 w-8 animate-spin text-white" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Caption Input */}
+                  <div className="w-full md:w-1/2 p-4 flex flex-col">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Avatar className="w-8 h-8 border border-zinc-700">
+                        <AvatarImage src={userImage} alt={username} />
+                        <AvatarFallback>
+                          {username.substring(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="font-medium text-sm">{username}</span>
+                    </div>
+
+                    <Textarea
+                      placeholder="Write a caption..."
+                      className="flex-1 resize-none bg-transparent border-none text-white focus-visible:ring-0 focus-visible:ring-offset-0 p-0 min-h-[100px]"
+                      maxLength={MAX_CAPTION_LENGTH}
+                      {...register("caption")}
+                    />
+                    {errors.caption && (
+                      <p className="text-red-400 text-xs mt-1">
+                        {errors.caption.message}
+                      </p>
+                    )}
+
+                    <div className="flex justify-end items-center mt-2 text-zinc-400 text-xs">
+                      <span>
+                        {caption?.length || 0}/{MAX_CAPTION_LENGTH}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Hidden input for image URL */}
+                <input type="hidden" {...register("image")} />
+              </form>
+            </TabsContent>
+          </Tabs>
+        </div>
 
         {/* Feedback Messages */}
         {feedbackMessage && (
           <div
-            className={`px-4 py-2 text-sm ${
+            className={`px-4 py-2 text-sm flex-shrink-0 ${
               feedbackMessage.type === "error"
                 ? "bg-red-500/20 text-red-200"
                 : feedbackMessage.type === "success"
@@ -398,7 +405,7 @@ export function CreatePostModal({
           </div>
         )}
 
-        <DialogFooter className="border-t border-zinc-800 p-4">
+        <DialogFooter className="border-t border-zinc-800 p-4 flex-shrink-0">
           {activeTab === "upload" ? (
             <Button variant="ghost" onClick={handleClose}>
               Cancel
