@@ -94,12 +94,12 @@ export default function ExplorePage() {
                         i % 5 === 0
                           ? "aspect-square"
                           : i % 5 === 1
-                          ? "aspect-[4/5]"
-                          : i % 5 === 2
-                          ? "aspect-[4/3]"
-                          : i % 5 === 3
-                          ? "aspect-[3/4]"
-                          : "aspect-square"
+                            ? "aspect-[4/5]"
+                            : i % 5 === 2
+                              ? "aspect-[4/3]"
+                              : i % 5 === 3
+                                ? "aspect-[3/4]"
+                                : "aspect-square"
                       }`}
                     />
                   </div>

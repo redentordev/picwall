@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 interface MongooseCache {
   conn: typeof mongoose | null;
@@ -9,7 +9,8 @@ declare global {
   var mongoose: MongooseCache | undefined;
 }
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/picwall';
+const MONGODB_URI =
+  process.env.MONGODB_URI || "mongodb://localhost:27017/picwall";
 
 let cached: MongooseCache = global.mongoose || { conn: null, promise: null };
 
@@ -27,7 +28,7 @@ async function connectDB() {
       bufferCommands: false,
     };
 
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
+    cached.promise = mongoose.connect(MONGODB_URI, opts).then(mongoose => {
       return mongoose;
     });
   }

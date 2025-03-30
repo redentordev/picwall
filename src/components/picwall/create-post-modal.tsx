@@ -397,8 +397,8 @@ export function CreatePostModal({
               feedbackMessage.type === "error"
                 ? "bg-red-500/20 text-red-200"
                 : feedbackMessage.type === "success"
-                ? "bg-green-500/20 text-green-200"
-                : "bg-blue-500/20 text-blue-200"
+                  ? "bg-green-500/20 text-green-200"
+                  : "bg-blue-500/20 text-blue-200"
             }`}
           >
             {feedbackMessage.message}

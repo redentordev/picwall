@@ -31,7 +31,8 @@ export default function NotFound() {
           <UserX className="h-16 w-16 text-zinc-500 mb-6" />
           <h1 className="text-3xl font-bold mb-4">User Not Found</h1>
           <p className="text-zinc-400 mb-6">
-            The user you're looking for doesn't exist or may have been removed.
+            The user you&apos;re looking for doesn&apos;t exist or may have been
+            removed.
           </p>
           <p className="text-zinc-500 text-sm mb-8">
             Redirecting to home page in 5 seconds...

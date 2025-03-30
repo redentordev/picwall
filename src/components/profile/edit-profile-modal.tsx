@@ -80,7 +80,7 @@ export default function EditProfileModal({
           await uploadImage(imageDataUrl);
         };
         reader.readAsDataURL(file);
-      } catch (err) {
+      } catch (_) {
         setError("Failed to read the image file");
         setIsUploading(false);
       }
@@ -138,7 +138,7 @@ export default function EditProfileModal({
           await uploadImage(imageDataUrl);
         };
         reader.readAsDataURL(file);
-      } catch (err) {
+      } catch (_) {
         setError("Failed to read the image file");
         setIsUploading(false);
       }

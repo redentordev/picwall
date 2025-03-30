@@ -3,18 +3,7 @@ import type React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import {
-  Home,
-  Search,
-  Compass,
-  Heart,
-  PlusSquare,
-  User,
-  LogOut,
-  MessageCircle,
-  Bookmark,
-  Menu,
-} from "lucide-react";
+import { Home, Compass, PlusSquare, User, LogOut, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { signOut, useSession } from "@/lib/auth-client";

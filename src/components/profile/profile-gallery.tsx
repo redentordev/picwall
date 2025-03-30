@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Heart, MessageCircle } from "lucide-react";
 import useSWR from "swr";
-import { Post, Comment, User } from "@/types";
+import { Post, User } from "@/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PostModal } from "@/components/picwall/post-modal";
 import { useSession } from "@/lib/auth-client";
@@ -37,7 +37,7 @@ export function ProfileGallery({ posts, isLoading }: ProfileGalleryProps) {
   const [userDataCache, setUserDataCache] = useState<Record<string, User>>({});
 
   // Fetch selected post data using SWR when a post is clicked
-  const { data: postData, error: postError } = useSWR(
+  const { data: postData } = useSWR(
     selectedPostId ? `/api/post?id=${selectedPostId}` : null,
     fetcher,
     {
@@ -116,8 +116,8 @@ export function ProfileGallery({ posts, isLoading }: ProfileGalleryProps) {
             typeof postData.post.likes === "number"
               ? postData.post.likes
               : Array.isArray(postData.post.likes)
-              ? postData.post.likes.length
-              : 0,
+                ? postData.post.likes.length
+                : 0,
           caption: postData.post.caption || "",
           comments: Array.isArray(postData.post.comments)
             ? postData.post.comments.map((comment: any) => {
@@ -170,7 +170,7 @@ export function ProfileGallery({ posts, isLoading }: ProfileGalleryProps) {
       <div className="flex flex-col items-center justify-center py-12 px-4">
         <h3 className="text-lg font-medium mb-2">No Posts Yet</h3>
         <p className="text-zinc-400 text-center max-w-md">
-          When this user shares photos, you'll see them here.
+          When this user shares photos, you&apos;ll see them here.
         </p>
       </div>
     );
@@ -193,8 +193,8 @@ export function ProfileGallery({ posts, isLoading }: ProfileGalleryProps) {
                     {typeof post.likes === "number"
                       ? post.likes
                       : Array.isArray(post.likes)
-                      ? post.likes.length
-                      : 0}
+                        ? post.likes.length
+                        : 0}
                   </span>
                 </div>
                 <div className="flex items-center gap-1">
@@ -203,8 +203,8 @@ export function ProfileGallery({ posts, isLoading }: ProfileGalleryProps) {
                     {typeof post.comments === "number"
                       ? post.comments
                       : Array.isArray(post.comments)
-                      ? post.comments.length
-                      : 0}
+                        ? post.comments.length
+                        : 0}
                   </span>
                 </div>
               </div>

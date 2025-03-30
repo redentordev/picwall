@@ -13,8 +13,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Heart, MessageCircle, X, ChevronUp, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Heart, MessageCircle, X, Loader2 } from "lucide-react";
 import { useSession } from "@/lib/auth-client";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { formatTimeAgo } from "@/lib/date-utils";
@@ -304,49 +303,6 @@ export function PostModal({
     }
     return word + " ";
   });
-
-  const toggleComments = () => {
-    setShowComments(!showComments);
-  };
-
-  // Handle drag start
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (!commentPanelRef.current) return;
-    dragStartY.current = e.touches[0].clientY;
-    currentTranslateY.current = 0;
-    commentPanelRef.current.style.transition = "none";
-  };
-
-  // Handle drag movement
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (dragStartY.current === null || !commentPanelRef.current) return;
-
-    const currentY = e.touches[0].clientY;
-    const deltaY = currentY - dragStartY.current;
-
-    // Only allow dragging downward
-    if (deltaY < 0) return;
-
-    currentTranslateY.current = deltaY;
-    commentPanelRef.current.style.transform = `translateY(${deltaY}px)`;
-  };
-
-  // Handle drag end
-  const handleTouchEnd = () => {
-    if (!commentPanelRef.current || dragStartY.current === null) return;
-
-    commentPanelRef.current.style.transition = "transform 0.3s ease-in-out";
-
-    // If dragged more than 100px down, close the panel
-    if (currentTranslateY.current > 100) {
-      setShowComments(false);
-    } else {
-      // Otherwise snap back
-      commentPanelRef.current.style.transform = "translateY(0)";
-    }
-
-    dragStartY.current = null;
-  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

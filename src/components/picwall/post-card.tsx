@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Heart, MessageCircle, Send, Bookmark } from "lucide-react";
+import { Heart, MessageCircle } from "lucide-react";
 import { PostModal } from "./post-modal";
 import { useSession } from "@/lib/auth-client";
 import { formatTimeAgo } from "@/lib/date-utils";
@@ -34,15 +34,6 @@ interface PostCardProps {
 // Use email as username without formatting
 const formatUsername = (email: string): string => {
   return email;
-};
-
-// Function to get user image with fallback
-const getUserImage = (
-  image: string | null | undefined,
-  userId: string
-): string => {
-  if (image) return image;
-  return `https://picsum.photos/seed/${userId || "default"}_user/200/200`;
 };
 
 export function PostCard({
@@ -128,14 +119,6 @@ export function PostCard({
       setLikesCount(prev => (wasLiked ? prev + 1 : prev - 1));
       console.error("Error updating like status:", error);
     }
-  };
-
-  const handleSave = () => {
-    if (!isLoggedIn) {
-      // Redirect to login or show login modal
-      return;
-    }
-    setIsSaved(!isSaved);
   };
 
   const handleComment = async () => {

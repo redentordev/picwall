@@ -22,4 +22,4 @@ export interface User {
   image?: string;
   bio?: string;
   emailVerified?: boolean;
-} 
+}

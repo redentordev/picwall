@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import useSWR, { mutate } from "swr";
 import { Heart, MessageCircle } from "lucide-react";
 import { PostModal } from "@/components/picwall/post-modal";
@@ -36,7 +35,7 @@ export function ExploreGallery({
   const [selectedPost, setSelectedPost] = useState<any | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [userDataCache, setUserDataCache] = useState<Record<string, any>>({});
-  const [isMobile, setIsMobile] = useState(false);
+  const [_, setIsMobile] = useState(false);
   const [columns, setColumns] = useState(4);
 
   // Check if on mobile device and set number of columns
@@ -74,7 +73,7 @@ export function ExploreGallery({
   const columnedPosts = useMemo(() => {
     const result: any[][] = Array.from({ length: columns }, () => []);
 
-    sortedPosts.forEach((post, index) => {
+    sortedPosts.forEach(post => {
       // Add to the shortest column for better distribution
       const shortestColumnIndex = result
         .map((column, i) => ({
@@ -193,8 +192,8 @@ export function ExploreGallery({
         typeof postData.post.likes === "number"
           ? postData.post.likes
           : Array.isArray(postData.post.likes)
-          ? postData.post.likes.length
-          : 0,
+            ? postData.post.likes.length
+            : 0,
       caption: postData.post.caption || "",
       comments: Array.isArray(postData.post.comments)
         ? postData.post.comments.map((comment: any) => {
@@ -284,8 +283,8 @@ export function ExploreGallery({
                           {typeof post.likes === "number"
                             ? post.likes
                             : Array.isArray(post.likes)
-                            ? post.likes.length
-                            : 0}
+                              ? post.likes.length
+                              : 0}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -294,8 +293,8 @@ export function ExploreGallery({
                           {typeof post.comments === "number"
                             ? post.comments
                             : Array.isArray(post.comments)
-                            ? post.comments.length
-                            : 0}
+                              ? post.comments.length
+                              : 0}
                         </span>
                       </div>
                     </div>

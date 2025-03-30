@@ -30,9 +30,10 @@ export default function TermsOfService() {
             <section className="space-y-4">
               <h2 className="text-xl font-semibold">1. Introduction</h2>
               <p className="text-zinc-300">
-                Welcome to Picwall ("we," "our," or "us"). By accessing or using
-                our services, you agree to be bound by these Terms of Service
-                ("Terms"). Please read these Terms carefully.
+                Welcome to Picwall (&quot;we,&quot; &quot;our,&quot; or
+                &quot;us&quot;). By accessing or using our services, you agree
+                to be bound by these Terms of Service (&quot;Terms&quot;).
+                Please read these Terms carefully.
               </p>
               <p className="text-zinc-300">
                 By accessing or using Picwall, you agree to these Terms. If you
@@ -124,8 +125,9 @@ export default function TermsOfService() {
                 7. Disclaimer of Warranties
               </h2>
               <p className="text-zinc-300">
-                Picwall is provided "as is" and "as available" without any
-                warranties of any kind, either express or implied.
+                Picwall is provided &quot;as is&quot; and &quot;as
+                available&quot; without any warranties of any kind, either
+                express or implied.
               </p>
             </section>
 
@@ -146,7 +148,7 @@ export default function TermsOfService() {
               <p className="text-zinc-300">
                 We reserve the right to modify or replace these Terms at any
                 time. If a revision is material, we will provide at least 30
-                days' notice prior to any new terms taking effect.
+                days&apos; notice prior to any new terms taking effect.
               </p>
             </section>
 

@@ -7,8 +7,6 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import useSWRInfinite from "swr/infinite";
 import { NextSeo } from "next-seo";
 import { CreatePostModal } from "@/components/picwall/create-post-modal";
-import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
 import { formatTimeAgo } from "@/lib/date-utils";
 
 const geistSans = Geist({

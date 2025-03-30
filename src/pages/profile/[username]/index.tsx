@@ -6,7 +6,7 @@ import useSWR from "swr";
 import { ProfileHeader } from "@/components/profile/profile-header";
 import { ProfileGallery } from "@/components/profile/profile-gallery";
 import { Sidebar } from "@/components/picwall/sidebar";
-import { User, Post } from "@/types";
+import { User } from "@/types";
 import EditProfileModal from "@/components/profile/edit-profile-modal";
 
 // SWR fetcher function
