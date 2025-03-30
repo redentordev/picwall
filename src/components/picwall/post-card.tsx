@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Heart, MessageCircle, Send, Bookmark } from "lucide-react";
 import { PostModal } from "./post-modal";
 import { useSession } from "@/lib/auth-client";
+import { formatTimeAgo } from "@/lib/date-utils";
 
 interface Comment {
   username: string;
@@ -150,16 +151,53 @@ export function PostCard({
       });
 
       if (response.ok) {
+        const result = await response.json();
+
+        // Debug latest comment object
+        if (
+          result.post &&
+          result.post.comments &&
+          result.post.comments.length > 0
+        ) {
+          const latestComment =
+            result.post.comments[result.post.comments.length - 1];
+          console.log("Latest comment from API:", latestComment);
+          console.log("Comment createdAt:", latestComment.createdAt);
+        }
+
         // Use the user's email as the username for new comments
         const userEmail = session?.user?.email || username;
 
-        // Add the new comment to the local state with "just now" timestamp
-        const newComment = {
-          username: userEmail,
-          comment: commentText,
-          timeAgo: "just now",
-        };
-        setLocalComments(prev => [...prev, newComment]);
+        // If we have the full post data with the new comment
+        if (
+          result.post &&
+          result.post.comments &&
+          result.post.comments.length > 0
+        ) {
+          // Get the latest comment which should be the one we just added
+          const latestComment =
+            result.post.comments[result.post.comments.length - 1];
+
+          // Add the new comment to the local state with proper timestamp from the server
+          const newComment = {
+            username: userEmail,
+            comment: commentText,
+            // Calculate timeAgo from createdAt
+            timeAgo: latestComment.createdAt
+              ? formatTimeAgo(new Date(latestComment.createdAt))
+              : formatTimeAgo(new Date()),
+          };
+          setLocalComments(prev => [...prev, newComment]);
+        } else {
+          // Fallback in case we don't get the expected response structure
+          const newComment = {
+            username: userEmail,
+            comment: commentText,
+            timeAgo: formatTimeAgo(new Date()),
+          };
+          setLocalComments(prev => [...prev, newComment]);
+        }
+
         setCommentText("");
 
         // If currently showing a limited number of comments, show them all now
@@ -337,11 +375,9 @@ export function PostCard({
                     {formatUsername(comment.username)}
                   </Link>
                   {comment.comment}
-                  {comment.timeAgo && (
-                    <span className="text-xs text-zinc-500 ml-2">
-                      {comment.timeAgo}
-                    </span>
-                  )}
+                  <span className="text-xs text-zinc-500 ml-2">
+                    {comment.timeAgo || "recently"}
+                  </span>
                 </div>
               ))}
             </div>

@@ -17,6 +17,7 @@ import { Heart, MessageCircle, X, ChevronUp, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSession } from "@/lib/auth-client";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
+import { formatTimeAgo } from "@/lib/date-utils";
 
 interface Comment {
   username: string;
@@ -194,16 +195,53 @@ export function PostModal({
       });
 
       if (response.ok) {
+        const result = await response.json();
+
+        // Debug latest comment object
+        if (
+          result.post &&
+          result.post.comments &&
+          result.post.comments.length > 0
+        ) {
+          const latestComment =
+            result.post.comments[result.post.comments.length - 1];
+          console.log("Latest comment from API (modal):", latestComment);
+          console.log("Comment createdAt (modal):", latestComment.createdAt);
+        }
+
         // Use the user's email as the username for the new comment
         const userEmail = session?.user?.email || post.username;
 
-        // Add the new comment to the local state
-        const newComment = {
-          username: userEmail,
-          comment: commentText,
-          timeAgo: "just now",
-        };
-        setLocalComments(prev => [...prev, newComment]);
+        // If we have the full post data with the new comment
+        if (
+          result.post &&
+          result.post.comments &&
+          result.post.comments.length > 0
+        ) {
+          // Get the latest comment which should be the one we just added
+          const latestComment =
+            result.post.comments[result.post.comments.length - 1];
+
+          // Add the new comment to the local state with proper timestamp from the server
+          const newComment = {
+            username: userEmail,
+            comment: commentText,
+            // Calculate timeAgo from createdAt
+            timeAgo: latestComment.createdAt
+              ? formatTimeAgo(new Date(latestComment.createdAt))
+              : formatTimeAgo(new Date()),
+          };
+          setLocalComments(prev => [...prev, newComment]);
+        } else {
+          // Fallback in case we don't get the expected response structure
+          const newComment = {
+            username: userEmail,
+            comment: commentText,
+            timeAgo: formatTimeAgo(new Date()),
+          };
+          setLocalComments(prev => [...prev, newComment]);
+        }
+
         setCommentText("");
       } else {
         console.error("Failed to post comment");

@@ -9,6 +9,7 @@ import { NextSeo } from "next-seo";
 import { CreatePostModal } from "@/components/picwall/create-post-modal";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
+import { formatTimeAgo } from "@/lib/date-utils";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,7 +30,14 @@ const generateDummyPosts = (count: number, startIndex: number = 0) => {
     const id = (index + 1).toString();
     const seed = index + new Date().getTime();
     const email = faker.internet.email().toLowerCase();
-    const timeAgo = `${faker.number.int({ min: 1, max: 23 })}h`;
+
+    // Generate a random date within the last 30 days
+    const randomDate = new Date();
+    randomDate.setDate(
+      randomDate.getDate() - faker.number.int({ min: 0, max: 30 })
+    );
+    const timeAgo = formatTimeAgo(randomDate);
+
     const likes = faker.number.int({ min: 50, max: 5000 });
 
     const hashtags = [
@@ -50,10 +58,18 @@ const generateDummyPosts = (count: number, startIndex: number = 0) => {
     const caption = `${faker.lorem.paragraph(1)} ${selectedHashtags.join(" ")}`;
 
     const commentCount = faker.number.int({ min: 1, max: 5 });
-    const comments = Array.from({ length: commentCount }, () => ({
-      username: faker.internet.email().toLowerCase(),
-      comment: faker.lorem.sentence(),
-    }));
+    const comments = Array.from({ length: commentCount }, () => {
+      // Generate a random date for the comment that's newer than the post date
+      const commentDate = new Date(randomDate);
+      commentDate.setHours(
+        commentDate.getHours() + faker.number.int({ min: 1, max: 100 })
+      );
+      return {
+        username: faker.internet.email().toLowerCase(),
+        comment: faker.lorem.sentence(),
+        timeAgo: formatTimeAgo(commentDate),
+      };
+    });
 
     return {
       id,
@@ -165,7 +181,9 @@ export default function Home() {
                     return {
                       username: commentAuthorEmail,
                       comment: comment.comment || "No comment text",
-                      timeAgo: comment.timeAgo || "recently",
+                      timeAgo: comment.createdAt
+                        ? formatTimeAgo(new Date(comment.createdAt))
+                        : formatTimeAgo(new Date()),
                     };
                   })
                 : []
@@ -181,7 +199,9 @@ export default function Home() {
               id: post.id || "unknown",
               username: authorEmail,
               userImage: userImageUrl,
-              timeAgo: post.timeAgo || "recently",
+              timeAgo: post.createdAt
+                ? formatTimeAgo(new Date(post.createdAt))
+                : post.timeAgo || "recently",
               image: post.image || "/placeholder.svg",
               likes: post.likes?.length || 0,
               caption: post.caption || "",

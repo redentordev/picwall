@@ -14,7 +14,7 @@ const CommentSchema = new Schema<IComment>({
   toJSON: {
     virtuals: true,
     transform: function(doc, ret) {
-      ret.timeAgo = getTimeAgo(doc.createdAt);
+      // No need to add timeAgo here, we'll calculate it in the frontend
       return ret;
     }
   }
@@ -56,20 +56,59 @@ const PostSchema = new Schema<IPost>(
 
 function getTimeAgo(date: Date): string {
   const now = new Date();
-  const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+  const diffInMilliseconds = now.getTime() - date.getTime();
   
-  if (diffInHours < 1) return 'just now';
-  if (diffInHours === 1) return '1h';
-  if (diffInHours < 24) return `${diffInHours}h`;
+  // Convert to seconds
+  const diffInSeconds = Math.floor(diffInMilliseconds / 1000);
   
+  // Less than a minute
+  if (diffInSeconds < 60) {
+    return 'just now';
+  }
+  
+  // Convert to minutes
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  
+  // Less than an hour
+  if (diffInMinutes < 60) {
+    return diffInMinutes === 1 ? '1m' : `${diffInMinutes}m`;
+  }
+  
+  // Convert to hours
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  
+  // Less than a day
+  if (diffInHours < 24) {
+    return diffInHours === 1 ? '1h' : `${diffInHours}h`;
+  }
+  
+  // Convert to days
   const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays === 1) return '1d';
-  if (diffInDays < 7) return `${diffInDays}d`;
   
+  // Less than a week
+  if (diffInDays < 7) {
+    return diffInDays === 1 ? '1d' : `${diffInDays}d`;
+  }
+  
+  // Convert to weeks
   const diffInWeeks = Math.floor(diffInDays / 7);
-  if (diffInWeeks === 1) return '1w';
   
-  return `${diffInWeeks}w`;
+  // Less than a month (roughly)
+  if (diffInWeeks < 4) {
+    return diffInWeeks === 1 ? '1w' : `${diffInWeeks}w`;
+  }
+  
+  // Convert to months
+  const diffInMonths = Math.floor(diffInDays / 30);
+  
+  // Less than a year
+  if (diffInMonths < 12) {
+    return diffInMonths === 1 ? '1mo' : `${diffInMonths}mo`;
+  }
+  
+  // Convert to years
+  const diffInYears = Math.floor(diffInDays / 365);
+  return diffInYears === 1 ? '1y' : `${diffInYears}y`;
 }
 
 const Post = mongoose.models.Post || mongoose.model<IPost>('Post', PostSchema);
