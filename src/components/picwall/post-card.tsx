@@ -30,6 +30,11 @@ interface PostCardProps {
   liked?: boolean;
 }
 
+// Use email as username without formatting
+const formatUsername = (email: string): string => {
+  return email;
+};
+
 export function PostCard({
   id,
   username,
@@ -145,9 +150,12 @@ export function PostCard({
       });
 
       if (response.ok) {
+        // Use the user's email as the username for new comments
+        const userEmail = session?.user?.email || username;
+
         // Add the new comment to the local state with "just now" timestamp
         const newComment = {
-          username: username, // Using current username as fallback
+          username: userEmail,
           comment: commentText,
           timeAgo: "just now",
         };
@@ -206,7 +214,7 @@ export function PostCard({
             <Avatar className="w-8 h-8 border border-zinc-700">
               <AvatarImage src={userImage} alt={username} />
               <AvatarFallback>
-                {username.substring(0, 2).toUpperCase()}
+                {formatUsername(username).substring(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div className="flex flex-col">
@@ -215,11 +223,11 @@ export function PostCard({
                   href={`/profile/${username}`}
                   className="text-sm font-medium hover:underline"
                 >
-                  {username}
+                  {formatUsername(username)}
                 </Link>
               ) : (
                 <span className="text-sm font-medium cursor-default">
-                  {username}
+                  {formatUsername(username)}
                 </span>
               )}
               <span className="text-xs text-zinc-500">{timeAgo}</span>
@@ -234,7 +242,7 @@ export function PostCard({
         >
           <Image
             src={image || "/placeholder.svg"}
-            alt={`Post by ${username}`}
+            alt={`Post by ${formatUsername(username)}`}
             fill
             className="object-cover"
           />
@@ -295,7 +303,7 @@ export function PostCard({
                 href={isLoggedIn ? `/profile/${username}` : "/login"}
                 className="font-semibold mr-1 hover:underline"
               >
-                {username}
+                {formatUsername(username)}
               </Link>
               {formattedCaption}
             </p>
@@ -326,7 +334,7 @@ export function PostCard({
                     }
                     className="font-semibold mr-1 hover:underline"
                   >
-                    {comment.username}
+                    {formatUsername(comment.username)}
                   </Link>
                   {comment.comment}
                   {comment.timeAgo && (

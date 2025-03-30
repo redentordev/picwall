@@ -6,6 +6,9 @@ import { faker } from "@faker-js/faker";
 import { useEffect, useRef, useCallback, useState } from "react";
 import useSWRInfinite from "swr/infinite";
 import { NextSeo } from "next-seo";
+import { CreatePostModal } from "@/components/picwall/create-post-modal";
+import { Button } from "@/components/ui/button";
+import { PlusCircle } from "lucide-react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,12 +20,15 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Create a user cache to store user email information
+const userCache = new Map<string, string>();
+
 const generateDummyPosts = (count: number, startIndex: number = 0) => {
   return Array.from({ length: count }, (_, i) => {
     const index = startIndex + i;
     const id = (index + 1).toString();
     const seed = index + new Date().getTime();
-    const username = faker.internet.userName().toLowerCase();
+    const email = faker.internet.email().toLowerCase();
     const timeAgo = `${faker.number.int({ min: 1, max: 23 })}h`;
     const likes = faker.number.int({ min: 50, max: 5000 });
 
@@ -45,13 +51,13 @@ const generateDummyPosts = (count: number, startIndex: number = 0) => {
 
     const commentCount = faker.number.int({ min: 1, max: 5 });
     const comments = Array.from({ length: commentCount }, () => ({
-      username: faker.internet.userName().toLowerCase(),
+      username: faker.internet.email().toLowerCase(),
       comment: faker.lorem.sentence(),
     }));
 
     return {
       id,
-      username,
+      username: email,
       userImage: `https://picsum.photos/seed/${seed}/800/800`,
       timeAgo,
       image: `https://picsum.photos/seed/${seed}/800/800`,
@@ -65,14 +71,32 @@ const generateDummyPosts = (count: number, startIndex: number = 0) => {
 
 const PAGE_SIZE = 3;
 
-// Generate a placeholder username from user ID
-const generateUsernameFromId = (userId: string): string => {
-  // Handle cases where userId might be undefined or null
-  if (!userId) return "user";
+// Function to get the user's email from their ID
+// This makes an API call to get user data from our database
+const getUserEmailById = async (userId: string): Promise<string> => {
+  // Check if we already have the email in our cache
+  if (userCache.has(userId)) {
+    return userCache.get(userId) as string;
+  }
 
-  // Create a username pattern: user_1234 (last 4 chars of ID)
-  const shortId = userId.slice(-4);
-  return `user_${shortId}`;
+  try {
+    // Make an API call to get user data
+    const response = await fetch(`/api/user?id=${userId}`);
+
+    if (response.ok) {
+      const data = await response.json();
+      const email = data.user.email;
+
+      // Cache the result for future use
+      userCache.set(userId, email);
+      return email;
+    }
+  } catch (error) {
+    console.error("Error fetching user data:", error);
+  }
+
+  // Let the API handle the fallback for us
+  return `user_${userId.slice(-4)}@example.com`;
 };
 
 export default function Home() {
@@ -80,6 +104,7 @@ export default function Home() {
   const isLoggedIn = !!session;
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
 
   useEffect(() => {
     const checkIfMobile = () => {
@@ -120,42 +145,53 @@ export default function Home() {
         const data = await response.json();
         console.log("API response:", data); // Debug the API response
 
-        // Map the API response to match the expected format
-        return (data.posts || []).map((post: any) => {
-          // Ensure we have a valid string username
-          const username = generateUsernameFromId(post.userId);
+        // Process posts in parallel to get user emails
+        const processedPosts = await Promise.all(
+          (data.posts || []).map(async (post: any) => {
+            // Get email for the post author
+            const authorEmail = await getUserEmailById(post.userId);
 
-          // Generate image URL safely
-          const imageId = post.id || Math.random().toString(36).substring(7);
-          const userImageUrl = `https://picsum.photos/seed/${imageId}_user/800/800`;
+            // Generate image URL safely
+            const imageId = post.id || Math.random().toString(36).substring(7);
+            const userImageUrl = `https://picsum.photos/seed/${imageId}_user/800/800`;
 
-          // Process comments safely
-          const processedComments = Array.isArray(post.comments)
-            ? post.comments.map((comment: any) => ({
-                username: generateUsernameFromId(comment.userId),
-                comment: comment.comment || "No comment text",
-                timeAgo: comment.timeAgo || "recently", // Use timeAgo from comment if available
-              }))
-            : [];
+            // Process comments to get emails for comment authors
+            const processedComments = await Promise.all(
+              Array.isArray(post.comments)
+                ? post.comments.map(async (comment: any) => {
+                    const commentAuthorEmail = await getUserEmailById(
+                      comment.userId
+                    );
+                    return {
+                      username: commentAuthorEmail,
+                      comment: comment.comment || "No comment text",
+                      timeAgo: comment.timeAgo || "recently",
+                    };
+                  })
+                : []
+            );
 
-          // Check if the current user has liked this post
-          const isLiked =
-            Array.isArray(post.likes) && session?.user?.id
-              ? post.likes.includes(session.user.id)
-              : false;
+            // Check if the current user has liked this post
+            const isLiked =
+              Array.isArray(post.likes) && session?.user?.id
+                ? post.likes.includes(session.user.id)
+                : false;
 
-          return {
-            id: post.id || "unknown",
-            username,
-            userImage: userImageUrl,
-            timeAgo: post.timeAgo || "recently", // Use timeAgo from post
-            image: post.image || "/placeholder.svg",
-            likes: post.likes?.length || 0,
-            caption: post.caption || "",
-            comments: processedComments,
-            liked: isLiked, // Track if current user has liked this post
-          };
-        });
+            return {
+              id: post.id || "unknown",
+              username: authorEmail,
+              userImage: userImageUrl,
+              timeAgo: post.timeAgo || "recently",
+              image: post.image || "/placeholder.svg",
+              likes: post.likes?.length || 0,
+              caption: post.caption || "",
+              comments: processedComments,
+              liked: isLiked,
+            };
+          })
+        );
+
+        return processedPosts;
       } catch (error) {
         console.error("Error fetching posts:", error);
         return [];
@@ -167,7 +203,7 @@ export default function Home() {
     }
   };
 
-  const { data, error, isLoading, isValidating, size, setSize } =
+  const { data, error, isLoading, isValidating, size, setSize, mutate } =
     useSWRInfinite(getKey, fetcher, {
       revalidateFirstPage: false,
       persistSize: true,
@@ -208,6 +244,12 @@ export default function Home() {
     return () => observer.disconnect();
   }, [onIntersect]);
 
+  const handlePostCreated = useCallback(() => {
+    // Revalidate the first page to show the new post
+    console.log("Revalidating SWR data after post creation");
+    mutate();
+  }, [mutate]);
+
   return (
     <>
       <NextSeo
@@ -222,7 +264,7 @@ export default function Home() {
       <div
         className={`flex min-h-screen bg-black text-white ${geistSans.variable} ${geistMono.variable}`}
       >
-        {!isMobile && <Sidebar />}
+        {!isMobile && <Sidebar onPostCreated={handlePostCreated} />}
 
         <main
           className={`flex-1 mx-auto py-6 px-4 space-y-8 ${
@@ -231,8 +273,16 @@ export default function Home() {
           suppressHydrationWarning
         >
           {isLoggedIn && (
-            <div className="text-lg font-medium mb-6">
-              {isLoggedIn ? "Your Feed" : "Discover"}
+            <div className="flex items-center justify-between mb-6">
+              <div className="text-lg font-medium">Your Feed</div>
+              <Button
+                onClick={() => setIsCreatePostModalOpen(true)}
+                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                size="sm"
+              >
+                <PlusCircle className="mr-2 h-4 w-4" />
+                New Post
+              </Button>
             </div>
           )}
 
@@ -284,8 +334,19 @@ export default function Home() {
           )}
         </main>
 
-        {isMobile && <Sidebar />}
+        {isMobile && <Sidebar onPostCreated={handlePostCreated} />}
       </div>
+
+      {/* Create Post Modal */}
+      {isLoggedIn && (
+        <CreatePostModal
+          isOpen={isCreatePostModalOpen}
+          onClose={() => setIsCreatePostModalOpen(false)}
+          onPostCreated={handlePostCreated}
+          username={session?.user?.email || "user@example.com"}
+          userImage={session?.user?.image || "/placeholder-user.jpg"}
+        />
+      )}
     </>
   );
 }

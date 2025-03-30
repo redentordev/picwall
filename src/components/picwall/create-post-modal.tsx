@@ -24,6 +24,7 @@ import { useSession } from "@/lib/auth-client";
 interface CreatePostModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onPostCreated?: () => void;
   username: string;
   userImage: string;
 }
@@ -31,6 +32,7 @@ interface CreatePostModalProps {
 export function CreatePostModal({
   isOpen,
   onClose,
+  onPostCreated,
   username,
   userImage,
 }: CreatePostModalProps) {
@@ -229,16 +231,19 @@ export function CreatePostModal({
 
       console.log("Post created successfully:", postData);
 
-      // Show success message
+      // Show success message briefly
       setFeedbackMessage({
         type: "success",
         message: "Post created successfully!",
       });
 
-      // Close the modal after a delay to show the success message
-      setTimeout(() => {
-        handleClose();
-      }, 1500);
+      // Close the modal immediately
+      handleClose();
+
+      // Call the onPostCreated callback if provided to trigger revalidation
+      if (onPostCreated) {
+        onPostCreated();
+      }
     } catch (error: any) {
       console.error("Error creating post:", error);
       setFeedbackMessage({

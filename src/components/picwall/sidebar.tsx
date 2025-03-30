@@ -20,7 +20,11 @@ import { useState, useEffect } from "react";
 import { signOut, useSession } from "@/lib/auth-client";
 import { CreatePostModal } from "./create-post-modal";
 
-export function Sidebar() {
+interface SidebarProps {
+  onPostCreated?: () => void;
+}
+
+export function Sidebar({ onPostCreated }: SidebarProps = {}) {
   const { data: session } = useSession();
   const router = useRouter();
 
@@ -140,7 +144,8 @@ export function Sidebar() {
           <CreatePostModal
             isOpen={isCreateModalOpen}
             onClose={handleCloseCreateModal}
-            username={session?.user?.name || "User"}
+            onPostCreated={onPostCreated}
+            username={session?.user?.email || "user@example.com"}
             userImage={session?.user?.image || ""}
           />
         )}
@@ -357,7 +362,8 @@ export function Sidebar() {
         <CreatePostModal
           isOpen={isCreateModalOpen}
           onClose={handleCloseCreateModal}
-          username={session?.user?.name || "User"}
+          onPostCreated={onPostCreated}
+          username={session?.user?.email || "user@example.com"}
           userImage={session?.user?.image || ""}
         />
       )}

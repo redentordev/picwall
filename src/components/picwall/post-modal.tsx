@@ -6,10 +6,17 @@ import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogOverlay } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogOverlay,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Heart, MessageCircle, X, ChevronUp, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSession } from "@/lib/auth-client";
+import { VisuallyHidden } from "@/components/ui/visually-hidden";
 
 interface Comment {
   username: string;
@@ -34,6 +41,11 @@ interface PostModalProps {
   };
   isLoggedIn: boolean;
 }
+
+// Use email as username without formatting
+const formatUsername = (email: string): string => {
+  return email;
+};
 
 export function PostModal({
   isOpen,
@@ -182,9 +194,12 @@ export function PostModal({
       });
 
       if (response.ok) {
+        // Use the user's email as the username for the new comment
+        const userEmail = session?.user?.email || post.username;
+
         // Add the new comment to the local state
         const newComment = {
-          username: post.username, // Using current username as fallback
+          username: userEmail,
           comment: commentText,
           timeAgo: "just now",
         };
@@ -264,6 +279,13 @@ export function PostModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogOverlay className="bg-black/80 backdrop-blur-sm" />
       <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-[80vw] md:max-w-[90vw] lg:max-w-[80vw] xl:max-w-6xl p-0 bg-zinc-900 border border-zinc-800 overflow-hidden rounded-lg">
+        <VisuallyHidden>
+          <DialogTitle>Post by {formatUsername(post.username)}</DialogTitle>
+          <DialogDescription>
+            Photo post with image and comments
+          </DialogDescription>
+        </VisuallyHidden>
+
         <Button
           variant="ghost"
           size="icon"
@@ -295,7 +317,9 @@ export function PostModal({
                   <Avatar className="w-8 h-8 border border-zinc-700">
                     <AvatarImage src={post.userImage} alt={post.username} />
                     <AvatarFallback>
-                      {post.username.substring(0, 2).toUpperCase()}
+                      {formatUsername(post.username)
+                        .substring(0, 2)
+                        .toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col">
@@ -304,7 +328,7 @@ export function PostModal({
                       className="text-sm font-medium hover:underline"
                       onClick={e => e.stopPropagation()}
                     >
-                      {post.username}
+                      {formatUsername(post.username)}
                     </Link>
                   </div>
                 </div>
@@ -317,7 +341,9 @@ export function PostModal({
                   <Avatar className="w-8 h-8 border border-zinc-700">
                     <AvatarImage src={post.userImage} alt={post.username} />
                     <AvatarFallback>
-                      {post.username.substring(0, 2).toUpperCase()}
+                      {formatUsername(post.username)
+                        .substring(0, 2)
+                        .toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div>
@@ -327,7 +353,7 @@ export function PostModal({
                         className="font-semibold mr-1 hover:underline"
                         onClick={e => e.stopPropagation()}
                       >
-                        {post.username}
+                        {formatUsername(post.username)}
                       </Link>
                       {formattedCaption}
                     </p>
@@ -347,7 +373,9 @@ export function PostModal({
                         alt={comment.username}
                       />
                       <AvatarFallback>
-                        {comment.username.substring(0, 2).toUpperCase()}
+                        {formatUsername(comment.username)
+                          .substring(0, 2)
+                          .toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div>
@@ -357,7 +385,7 @@ export function PostModal({
                           className="font-semibold mr-1 hover:underline"
                           onClick={e => e.stopPropagation()}
                         >
-                          {comment.username}
+                          {formatUsername(comment.username)}
                         </Link>
                         {comment.comment}
                       </p>
@@ -469,7 +497,7 @@ export function PostModal({
               <Avatar className="w-7 h-7 border border-zinc-700 mr-2">
                 <AvatarImage src={post.userImage} alt={post.username} />
                 <AvatarFallback>
-                  {post.username.substring(0, 2).toUpperCase()}
+                  {formatUsername(post.username).substring(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <Link
@@ -477,7 +505,7 @@ export function PostModal({
                 className="text-sm font-medium hover:underline"
                 onClick={e => e.stopPropagation()}
               >
-                {post.username}
+                {formatUsername(post.username)}
               </Link>
             </div>
 
@@ -574,7 +602,9 @@ export function PostModal({
                   <Avatar className="w-8 h-8 border border-zinc-700">
                     <AvatarImage src={post.userImage} alt={post.username} />
                     <AvatarFallback>
-                      {post.username.substring(0, 2).toUpperCase()}
+                      {formatUsername(post.username)
+                        .substring(0, 2)
+                        .toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div>
@@ -584,7 +614,7 @@ export function PostModal({
                         className="font-semibold mr-1 hover:underline"
                         onClick={e => e.stopPropagation()}
                       >
-                        {post.username}
+                        {formatUsername(post.username)}
                       </Link>
                       {formattedCaption}
                     </p>
@@ -604,7 +634,9 @@ export function PostModal({
                         alt={comment.username}
                       />
                       <AvatarFallback>
-                        {comment.username.substring(0, 2).toUpperCase()}
+                        {formatUsername(comment.username)
+                          .substring(0, 2)
+                          .toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div>
@@ -614,7 +646,7 @@ export function PostModal({
                           className="font-semibold mr-1 hover:underline"
                           onClick={e => e.stopPropagation()}
                         >
-                          {comment.username}
+                          {formatUsername(comment.username)}
                         </Link>
                         {comment.comment}
                       </p>
