@@ -74,13 +74,6 @@ export function Sidebar({ onPostCreated }: SidebarProps = {}) {
                 Home
               </NavItem>
               <NavItem
-                href="/search"
-                icon={<Search className="w-5 h-5 mr-3" />}
-                isActive={pathname === "/search"}
-              >
-                Search
-              </NavItem>
-              <NavItem
                 href="/explore"
                 icon={<Compass className="w-5 h-5 mr-3" />}
                 isActive={pathname === "/explore"}
@@ -184,14 +177,6 @@ export function Sidebar({ onPostCreated }: SidebarProps = {}) {
               Home
             </MobileNavItem>
             <MobileNavItem
-              href="/search"
-              icon={<Search className="w-5 h-5" />}
-              isActive={pathname === "/search"}
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Search
-            </MobileNavItem>
-            <MobileNavItem
               href="/explore"
               icon={<Compass className="w-5 h-5" />}
               isActive={pathname === "/explore"}
@@ -264,7 +249,7 @@ export function Sidebar({ onPostCreated }: SidebarProps = {}) {
         </div>
       )}
 
-      {/* Mobile bottom nav - Rearranged to put Create in the middle */}
+      {/* Mobile bottom nav - Rearranged to include Home, Explore, Create, Profile, Logout */}
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-zinc-900 border-t border-zinc-800 py-2 px-2 grid grid-cols-5 items-center">
         <MobileNavIcon
           href="/"
@@ -278,12 +263,12 @@ export function Sidebar({ onPostCreated }: SidebarProps = {}) {
           }
         />
         <MobileNavIcon
-          href="/search"
+          href="/explore"
           icon={
-            <Search
+            <Compass
               className={cn(
                 "w-6 h-6",
-                pathname === "/search" ? "text-white" : "text-zinc-500"
+                pathname === "/explore" ? "text-white" : "text-zinc-500"
               )}
             />
           }
@@ -299,28 +284,8 @@ export function Sidebar({ onPostCreated }: SidebarProps = {}) {
           </button>
         ) : (
           <MobileNavIcon
-            href="/explore"
+            href="/login"
             icon={
-              <Compass
-                className={cn(
-                  "w-6 h-6",
-                  pathname === "/explore" ? "text-white" : "text-zinc-500"
-                )}
-              />
-            }
-          />
-        )}
-        <MobileNavIcon
-          href={isLoggedIn ? "/notifications" : "/explore"}
-          icon={
-            isLoggedIn ? (
-              <Heart
-                className={cn(
-                  "w-6 h-6",
-                  pathname === "/notifications" ? "text-white" : "text-zinc-500"
-                )}
-              />
-            ) : (
               <Link href="/login" className="flex items-center justify-center">
                 <Button
                   variant="ghost"
@@ -330,9 +295,9 @@ export function Sidebar({ onPostCreated }: SidebarProps = {}) {
                   Login
                 </Button>
               </Link>
-            )
-          }
-        />
+            }
+          />
+        )}
         <MobileNavIcon
           href={isLoggedIn ? "/profile" : "/login"}
           icon={
@@ -355,6 +320,16 @@ export function Sidebar({ onPostCreated }: SidebarProps = {}) {
             )
           }
         />
+        {isLoggedIn && (
+          <MobileNavIcon
+            href="#"
+            onClick={async () => {
+              await signOut();
+              router.push("/login");
+            }}
+            icon={<LogOut className="w-6 h-6 text-red-400" />}
+          />
+        )}
       </div>
 
       {/* Create Post Modal - Mobile */}

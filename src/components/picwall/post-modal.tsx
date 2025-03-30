@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { useSession } from "@/lib/auth-client";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { formatTimeAgo } from "@/lib/date-utils";
+import { mutate } from "swr";
 
 interface Comment {
   username: string;
@@ -41,6 +42,7 @@ interface PostModalProps {
     liked?: boolean;
   };
   isLoggedIn: boolean;
+  onPostUpdate?: () => void;
 }
 
 // Use email as username without formatting
@@ -68,6 +70,7 @@ export function PostModal({
   onClose,
   post,
   isLoggedIn,
+  onPostUpdate,
 }: PostModalProps) {
   const commentInputRef = useRef<HTMLInputElement>(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -152,6 +155,17 @@ export function PostModal({
     return () => window.removeEventListener("keydown", handleEscape);
   }, [onClose, showComments, isMobile]);
 
+  // Function to revalidate data
+  const revalidateData = () => {
+    // Revalidate the current post
+    mutate(`/api/post?id=${post.id}`);
+
+    // Call the parent's revalidation function if provided
+    if (onPostUpdate) {
+      onPostUpdate();
+    }
+  };
+
   // Handle liking a post
   const handleLike = async () => {
     if (!isLoggedIn || !session?.user?.id) return;
@@ -175,7 +189,10 @@ export function PostModal({
         }),
       });
 
-      if (!response.ok) {
+      if (response.ok) {
+        // Revalidate data after successful update
+        revalidateData();
+      } else {
         // If the request failed, revert the optimistic update
         setIsLiked(wasLiked);
         setLikesCount(prev => (wasLiked ? prev + 1 : prev - 1));
@@ -258,6 +275,9 @@ export function PostModal({
         }
 
         setCommentText("");
+
+        // Revalidate data after successful comment
+        revalidateData();
       } else {
         console.error("Failed to post comment");
       }

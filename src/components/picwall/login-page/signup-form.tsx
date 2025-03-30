@@ -40,7 +40,7 @@ const SignupForm = () => {
 
     if (result.data) {
       toast.success("Signed up successfully, redirecting...");
-      router.push("/protected");
+      router.push("/");
     }
   };
 

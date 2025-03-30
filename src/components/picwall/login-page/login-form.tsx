@@ -32,7 +32,7 @@ const LoginForm = () => {
       email: data.email,
       password: data.password,
       rememberMe: true,
-      callbackURL: "/protected",
+      callbackURL: "/",
     });
 
     if (result.error) {
