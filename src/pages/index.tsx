@@ -275,14 +275,6 @@ export default function Home() {
           {isLoggedIn && (
             <div className="flex items-center justify-between mb-6">
               <div className="text-lg font-medium">Your Feed</div>
-              <Button
-                onClick={() => setIsCreatePostModalOpen(true)}
-                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-                size="sm"
-              >
-                <PlusCircle className="mr-2 h-4 w-4" />
-                New Post
-              </Button>
             </div>
           )}
 
