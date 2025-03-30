@@ -115,6 +115,15 @@ const getUserEmailById = async (userId: string): Promise<string> => {
   return `user_${userId.slice(-4)}@example.com`;
 };
 
+// Function to get user image with fallback
+const getUserImage = (
+  image: string | null | undefined,
+  userId: string
+): string => {
+  if (image) return image;
+  return `https://picsum.photos/seed/${userId || "default"}_user/200/200`;
+};
+
 export default function Home() {
   const { data: session } = useSession();
   const isLoggedIn = !!session;
@@ -167,9 +176,22 @@ export default function Home() {
             // Get email for the post author
             const authorEmail = await getUserEmailById(post.userId);
 
-            // Generate image URL safely
-            const imageId = post.id || Math.random().toString(36).substring(7);
-            const userImageUrl = `https://picsum.photos/seed/${imageId}_user/800/800`;
+            // Get the user data for profile image
+            let userImageUrl;
+            try {
+              const userResponse = await fetch(`/api/user?id=${post.userId}`);
+              if (userResponse.ok) {
+                const userData = await userResponse.json();
+                // Use the image from user data or fallback to generated image
+                userImageUrl = getUserImage(userData.user.image, post.userId);
+              } else {
+                // Fallback to generated image
+                userImageUrl = getUserImage(null, post.userId);
+              }
+            } catch (error) {
+              console.error("Error fetching user image:", error);
+              userImageUrl = getUserImage(null, post.userId);
+            }
 
             // Process comments to get emails for comment authors
             const processedComments = await Promise.all(
@@ -178,12 +200,37 @@ export default function Home() {
                     const commentAuthorEmail = await getUserEmailById(
                       comment.userId
                     );
+
+                    // Get user image for comment author
+                    let commentUserImage;
+                    try {
+                      const userResponse = await fetch(
+                        `/api/user?id=${comment.userId}`
+                      );
+                      if (userResponse.ok) {
+                        const userData = await userResponse.json();
+                        commentUserImage = getUserImage(
+                          userData.user.image,
+                          comment.userId
+                        );
+                      } else {
+                        commentUserImage = getUserImage(null, comment.userId);
+                      }
+                    } catch (error) {
+                      console.error(
+                        "Error fetching comment user image:",
+                        error
+                      );
+                      commentUserImage = getUserImage(null, comment.userId);
+                    }
+
                     return {
                       username: commentAuthorEmail,
                       comment: comment.comment || "No comment text",
                       timeAgo: comment.createdAt
                         ? formatTimeAgo(new Date(comment.createdAt))
                         : formatTimeAgo(new Date()),
+                      userImage: commentUserImage,
                     };
                   })
                 : []

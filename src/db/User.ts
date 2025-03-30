@@ -5,6 +5,7 @@ export interface IUser extends Document {
   email: string;
   emailVerified: boolean;
   image?: string;
+  bio?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -29,6 +30,10 @@ const UserSchema = new Schema<IUser>(
     image: {
       type: String,
       default: null,
+    },
+    bio: {
+      type: String,
+      default: '',
     },
     createdAt: {
       type: Date,

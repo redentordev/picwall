@@ -36,6 +36,15 @@ const formatUsername = (email: string): string => {
   return email;
 };
 
+// Function to get user image with fallback
+const getUserImage = (
+  image: string | null | undefined,
+  userId: string
+): string => {
+  if (image) return image;
+  return `https://picsum.photos/seed/${userId || "default"}_user/200/200`;
+};
+
 export function PostCard({
   id,
   username,
@@ -446,7 +455,7 @@ export function PostCard({
           username,
           userImage,
           timeAgo,
-          image,
+          image: image || "/placeholder.svg",
           likes: likesCount,
           caption,
           comments: localComments,

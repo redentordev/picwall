@@ -48,6 +48,21 @@ const formatUsername = (email: string): string => {
   return email;
 };
 
+// Function to get fallback avatar image
+const getAvatarFallback = (username: string): string => {
+  return username
+    ? formatUsername(username).substring(0, 2).toUpperCase()
+    : "US";
+};
+
+// Function to get user image with fallback
+const getUserImage = (image: string | undefined, username: string): string => {
+  if (image) return image;
+  // Create a deterministic seed from the username
+  const seed = username ? username.replace(/[^a-zA-Z0-9]/g, "") : "default";
+  return `https://picsum.photos/seed/${seed}_user/200/200`;
+};
+
 export function PostModal({
   isOpen,
   onClose,
@@ -316,7 +331,7 @@ export function PostModal({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogOverlay className="bg-black/80 backdrop-blur-sm" />
-      <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-[80vw] md:max-w-[90vw] lg:max-w-[80vw] xl:max-w-6xl p-0 bg-zinc-900 border border-zinc-800 overflow-hidden rounded-lg">
+      <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-[80vw] md:max-w-[90vw] lg:max-w-[80vw] xl:max-w-6xl p-0 bg-zinc-900 border border-zinc-800 overflow-hidden rounded-lg max-h-[90vh]">
         <VisuallyHidden>
           <DialogTitle>Post by {formatUsername(post.username)}</DialogTitle>
           <DialogDescription>
@@ -348,16 +363,14 @@ export function PostModal({
             </div>
 
             {/* Right side - Comments and interactions */}
-            <div className="flex flex-col h-full">
+            <div className="flex flex-col h-full max-h-[80vh]">
               {/* Post header */}
               <div className="flex items-center justify-between p-4 border-b border-zinc-800">
                 <div className="flex items-center gap-3">
                   <Avatar className="w-8 h-8 border border-zinc-700">
                     <AvatarImage src={post.userImage} alt={post.username} />
                     <AvatarFallback>
-                      {formatUsername(post.username)
-                        .substring(0, 2)
-                        .toUpperCase()}
+                      {getAvatarFallback(post.username)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col">
@@ -372,16 +385,14 @@ export function PostModal({
                 </div>
               </div>
 
-              {/* Comments section */}
+              {/* Comments section - Make sure it's scrollable */}
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {/* Original post caption */}
                 <div className="flex gap-3">
-                  <Avatar className="w-8 h-8 border border-zinc-700">
+                  <Avatar className="w-8 h-8 border border-zinc-700 flex-shrink-0">
                     <AvatarImage src={post.userImage} alt={post.username} />
                     <AvatarFallback>
-                      {formatUsername(post.username)
-                        .substring(0, 2)
-                        .toUpperCase()}
+                      {getAvatarFallback(post.username)}
                     </AvatarFallback>
                   </Avatar>
                   <div>
@@ -402,18 +413,16 @@ export function PostModal({
                 {/* Comments */}
                 {localComments.map((comment, index) => (
                   <div key={index} className="flex gap-3">
-                    <Avatar className="w-8 h-8 border border-zinc-700">
+                    <Avatar className="w-8 h-8 border border-zinc-700 flex-shrink-0">
                       <AvatarImage
                         src={
                           comment.userImage ||
-                          `/images/avatars/${comment.username}.jpg`
+                          getUserImage(undefined, comment.username)
                         }
                         alt={comment.username}
                       />
                       <AvatarFallback>
-                        {formatUsername(comment.username)
-                          .substring(0, 2)
-                          .toUpperCase()}
+                        {getAvatarFallback(comment.username)}
                       </AvatarFallback>
                     </Avatar>
                     <div>
@@ -435,8 +444,8 @@ export function PostModal({
                 ))}
               </div>
 
-              {/* Post actions */}
-              <div className="border-t border-zinc-800 p-4">
+              {/* Post actions - Fixed at bottom */}
+              <div className="border-t border-zinc-800 p-4 bg-zinc-900">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-4">
                     <Button
@@ -529,13 +538,13 @@ export function PostModal({
 
         {/* Mobile layout */}
         {isMobile && (
-          <div className="flex flex-col h-[85vh]">
+          <div className="flex flex-col h-[80vh] max-h-[80vh]">
             {/* Username bar */}
-            <div className="flex items-center p-3 border-b border-zinc-800">
+            <div className="flex items-center p-3 border-b border-zinc-800 bg-zinc-900 z-10">
               <Avatar className="w-7 h-7 border border-zinc-700 mr-2">
                 <AvatarImage src={post.userImage} alt={post.username} />
                 <AvatarFallback>
-                  {formatUsername(post.username).substring(0, 2).toUpperCase()}
+                  {getAvatarFallback(post.username)}
                 </AvatarFallback>
               </Avatar>
               <Link
@@ -547,102 +556,29 @@ export function PostModal({
               </Link>
             </div>
 
-            {/* Image container */}
-            <div className="relative flex-1 bg-black flex items-center justify-center overflow-hidden">
-              <Image
-                src={post.image || "/placeholder.svg"}
-                alt={`Post by ${post.username}`}
-                fill
-                className="object-contain"
-              />
-            </div>
-
-            {/* Action bar */}
-            <div className="p-3 border-t border-zinc-800 bg-zinc-900">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-full"
-                    onClick={handleLike}
-                    disabled={!isLoggedIn}
-                  >
-                    <Heart
-                      className={`h-5 w-5 ${
-                        isLiked ? "fill-red-500 text-red-500" : ""
-                      }`}
-                    />
-                    <span className="sr-only">Like</span>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-full"
-                    onClick={toggleComments}
-                  >
-                    <MessageCircle className="h-5 w-5" />
-                    <span className="sr-only">Comment</span>
-                  </Button>
-                </div>
-                <p className="text-xs font-semibold">
-                  {likesCount.toLocaleString()} likes
-                </p>
-              </div>
-            </div>
-
-            {/* Comment overlay panel */}
-            <div
-              ref={commentPanelRef}
-              className={cn(
-                "fixed inset-x-0 bottom-0 bg-zinc-900 rounded-t-xl shadow-lg z-10 transition-transform duration-300 ease-in-out transform",
-                showComments ? "translate-y-0" : "translate-y-full"
-              )}
-              style={{
-                maxHeight: "70vh",
-                height: "70vh",
-              }}
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
-            >
-              {/* Pull indicator */}
+            {/* Content area with scrolling */}
+            <div className="flex flex-col overflow-y-auto flex-1">
+              {/* Image container */}
               <div
-                className="flex justify-center p-2 cursor-grab active:cursor-grabbing"
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
+                className="relative bg-black flex items-center justify-center"
+                style={{ minHeight: "200px", height: "40vh" }}
               >
-                <div className="w-10 h-1 bg-zinc-700 rounded-full" />
+                <Image
+                  src={post.image || "/placeholder.svg"}
+                  alt={`Post by ${post.username}`}
+                  fill
+                  className="object-contain"
+                />
               </div>
 
-              {/* Comments header */}
-              <div className="flex items-center justify-between p-3 border-b border-zinc-800">
-                <h3 className="text-sm font-semibold">Comments</h3>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 rounded-full"
-                  onClick={toggleComments}
-                >
-                  <X className="h-4 w-4" />
-                  <span className="sr-only">Close comments</span>
-                </Button>
-              </div>
-
-              {/* Comment list */}
-              <div
-                className="overflow-y-auto p-3 space-y-4"
-                style={{ maxHeight: "calc(70vh - 125px)" }}
-              >
+              {/* Caption and comments */}
+              <div className="p-3 space-y-4 flex-1 overflow-y-auto">
                 {/* Caption */}
                 <div className="flex gap-3">
-                  <Avatar className="w-8 h-8 border border-zinc-700">
+                  <Avatar className="w-8 h-8 border border-zinc-700 flex-shrink-0">
                     <AvatarImage src={post.userImage} alt={post.username} />
                     <AvatarFallback>
-                      {formatUsername(post.username)
-                        .substring(0, 2)
-                        .toUpperCase()}
+                      {getAvatarFallback(post.username)}
                     </AvatarFallback>
                   </Avatar>
                   <div>
@@ -663,18 +599,16 @@ export function PostModal({
                 {/* Comments */}
                 {localComments.map((comment, index) => (
                   <div key={index} className="flex gap-3">
-                    <Avatar className="w-8 h-8 border border-zinc-700">
+                    <Avatar className="w-8 h-8 border border-zinc-700 flex-shrink-0">
                       <AvatarImage
                         src={
                           comment.userImage ||
-                          `/images/avatars/${comment.username}.jpg`
+                          getUserImage(undefined, comment.username)
                         }
                         alt={comment.username}
                       />
                       <AvatarFallback>
-                        {formatUsername(comment.username)
-                          .substring(0, 2)
-                          .toUpperCase()}
+                        {getAvatarFallback(comment.username)}
                       </AvatarFallback>
                     </Avatar>
                     <div>
@@ -695,47 +629,71 @@ export function PostModal({
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Action bar - Fixed at bottom */}
+            <div className="p-3 border-t border-zinc-800 bg-zinc-900 z-10">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-4">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full"
+                    onClick={handleLike}
+                    disabled={!isLoggedIn}
+                  >
+                    <Heart
+                      className={`h-5 w-5 ${
+                        isLiked ? "fill-red-500 text-red-500" : ""
+                      }`}
+                    />
+                    <span className="sr-only">Like</span>
+                  </Button>
+                  <MessageCircle className="h-5 w-5" />
+                </div>
+                <p className="text-xs font-semibold">
+                  {likesCount.toLocaleString()} likes
+                </p>
+              </div>
 
               {/* Comment input */}
               {isLoggedIn ? (
-                <div className="p-3 border-t border-zinc-800">
-                  <div className="flex items-center gap-2">
-                    <Input
-                      ref={commentInputRef}
-                      type="text"
-                      placeholder="Add a comment..."
-                      value={commentText}
-                      onChange={e => setCommentText(e.target.value)}
-                      onKeyDown={e => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          handleComment();
-                        }
-                      }}
-                      className="bg-transparent border-none text-sm h-9 p-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-                      disabled={isSubmittingComment}
-                    />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleComment}
-                      disabled={!commentText.trim() || isSubmittingComment}
-                      className={`text-blue-400 hover:text-blue-300 ${
-                        !commentText.trim() || isSubmittingComment
-                          ? "opacity-50"
-                          : ""
-                      }`}
-                    >
-                      {isSubmittingComment ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                      ) : (
-                        "Post"
-                      )}
-                    </Button>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <Input
+                    ref={commentInputRef}
+                    type="text"
+                    placeholder="Add a comment..."
+                    value={commentText}
+                    onChange={e => setCommentText(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleComment();
+                      }
+                    }}
+                    className="bg-transparent border-none text-sm h-9 p-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    disabled={isSubmittingComment}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleComment}
+                    disabled={!commentText.trim() || isSubmittingComment}
+                    className={`text-blue-400 hover:text-blue-300 ${
+                      !commentText.trim() || isSubmittingComment
+                        ? "opacity-50"
+                        : ""
+                    }`}
+                  >
+                    {isSubmittingComment ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                    ) : (
+                      "Post"
+                    )}
+                  </Button>
                 </div>
               ) : (
-                <div className="p-3 border-t border-zinc-800">
+                <div>
                   <Link
                     href="/login"
                     className="text-sm text-blue-400 hover:text-blue-300"

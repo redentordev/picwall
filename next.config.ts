@@ -10,6 +10,17 @@ const nextConfig: NextConfig = {
       },
       {
         hostname: "picwall-webtech.s3.us-east-1.amazonaws.com",
+      },
+      {
+        hostname: "localhost",
+      },
+      {
+        protocol: "https",
+        hostname: "**",
+      },
+      {
+        protocol: "http",
+        hostname: "**",
       }
     ],
   },
