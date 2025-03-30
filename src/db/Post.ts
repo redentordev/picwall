@@ -3,11 +3,21 @@ import mongoose, { Document, Schema } from 'mongoose';
 interface IComment {
   userId: string;
   comment: string;
+  createdAt: Date;
 }
 
 const CommentSchema = new Schema<IComment>({
   userId: { type: String, required: true },
-  comment: { type: String, required: true }
+  comment: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now }
+}, {
+  toJSON: {
+    virtuals: true,
+    transform: function(doc, ret) {
+      ret.timeAgo = getTimeAgo(doc.createdAt);
+      return ret;
+    }
+  }
 });
 
 export interface IPost extends Document {

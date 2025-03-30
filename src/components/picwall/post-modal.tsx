@@ -7,8 +7,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogOverlay } from "@/components/ui/dialog";
-import { Heart, MessageCircle, X, ChevronUp } from "lucide-react";
+import { Heart, MessageCircle, X, ChevronUp, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSession } from "@/lib/auth-client";
 
 interface Comment {
   username: string;
@@ -29,6 +30,7 @@ interface PostModalProps {
     likes: number;
     caption: string;
     comments: Comment[];
+    liked?: boolean;
   };
   isLoggedIn: boolean;
 }
@@ -45,6 +47,21 @@ export function PostModal({
   const commentPanelRef = useRef<HTMLDivElement>(null);
   const dragStartY = useRef<number | null>(null);
   const currentTranslateY = useRef<number>(0);
+  const { data: session } = useSession();
+
+  // Interaction state
+  const [isLiked, setIsLiked] = useState(post.liked || false);
+  const [likesCount, setLikesCount] = useState(post.likes);
+  const [localComments, setLocalComments] = useState<Comment[]>(post.comments);
+  const [commentText, setCommentText] = useState("");
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+
+  // Update local state when post props change
+  useEffect(() => {
+    setIsLiked(post.liked || false);
+    setLikesCount(post.likes);
+    setLocalComments(post.comments);
+  }, [post.liked, post.likes, post.comments]);
 
   // Check if we're on a mobile device
   useEffect(() => {
@@ -106,6 +123,82 @@ export function PostModal({
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
   }, [onClose, showComments, isMobile]);
+
+  // Handle liking a post
+  const handleLike = async () => {
+    if (!isLoggedIn || !session?.user?.id) return;
+
+    // Optimistically update UI
+    const wasLiked = isLiked;
+    setIsLiked(!wasLiked);
+    setLikesCount(prev => (wasLiked ? prev - 1 : prev + 1));
+
+    try {
+      const action = wasLiked ? "unlike" : "like";
+      const response = await fetch(`/api/post?id=${post.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: post.id,
+          userId: session.user.id,
+          action,
+        }),
+      });
+
+      if (!response.ok) {
+        // If the request failed, revert the optimistic update
+        setIsLiked(wasLiked);
+        setLikesCount(prev => (wasLiked ? prev + 1 : prev - 1));
+        console.error("Failed to update like status");
+      }
+    } catch (error) {
+      // If there was an error, revert the optimistic update
+      setIsLiked(wasLiked);
+      setLikesCount(prev => (wasLiked ? prev + 1 : prev - 1));
+      console.error("Error updating like status:", error);
+    }
+  };
+
+  // Handle commenting on a post
+  const handleComment = async () => {
+    if (!isLoggedIn || !session?.user?.id || !commentText.trim()) return;
+
+    setIsSubmittingComment(true);
+
+    try {
+      const response = await fetch(`/api/post?id=${post.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: post.id,
+          userId: session.user.id,
+          action: "comment",
+          comment: commentText,
+        }),
+      });
+
+      if (response.ok) {
+        // Add the new comment to the local state
+        const newComment = {
+          username: post.username, // Using current username as fallback
+          comment: commentText,
+          timeAgo: "just now",
+        };
+        setLocalComments(prev => [...prev, newComment]);
+        setCommentText("");
+      } else {
+        console.error("Failed to post comment");
+      }
+    } catch (error) {
+      console.error("Error posting comment:", error);
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  };
 
   // Format hashtags in caption
   const formattedCaption = post.caption.split(" ").map((word, index) => {
@@ -243,7 +336,7 @@ export function PostModal({
                 </div>
 
                 {/* Comments */}
-                {post.comments.map((comment, index) => (
+                {localComments.map((comment, index) => (
                   <div key={index} className="flex gap-3">
                     <Avatar className="w-8 h-8 border border-zinc-700">
                       <AvatarImage
@@ -269,7 +362,7 @@ export function PostModal({
                         {comment.comment}
                       </p>
                       <p className="text-xs text-zinc-500 mt-1">
-                        {comment.timeAgo || "1d"}
+                        {comment.timeAgo || "recently"}
                       </p>
                     </div>
                   </div>
@@ -284,14 +377,21 @@ export function PostModal({
                       variant="ghost"
                       size="icon"
                       className="h-9 w-9 rounded-full"
+                      onClick={handleLike}
+                      disabled={!isLoggedIn}
                     >
-                      <Heart className="h-6 w-6" />
+                      <Heart
+                        className={`h-6 w-6 ${
+                          isLiked ? "fill-red-500 text-red-500" : ""
+                        }`}
+                      />
                       <span className="sr-only">Like</span>
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-9 w-9 rounded-full"
+                      onClick={() => commentInputRef.current?.focus()}
                     >
                       <MessageCircle className="h-6 w-6" />
                       <span className="sr-only">Comment</span>
@@ -302,7 +402,7 @@ export function PostModal({
                 {/* Likes */}
                 <div className="mb-3">
                   <p className="text-sm font-semibold">
-                    {post.likes.toLocaleString()} likes
+                    {likesCount.toLocaleString()} likes
                   </p>
                 </div>
 
@@ -313,20 +413,39 @@ export function PostModal({
                       ref={commentInputRef}
                       type="text"
                       placeholder="Add a comment..."
+                      value={commentText}
+                      onChange={e => setCommentText(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleComment();
+                        }
+                      }}
                       className="bg-transparent border-none text-sm h-9 p-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      disabled={isSubmittingComment}
                     />
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-blue-400 hover:text-blue-300"
+                      onClick={handleComment}
+                      disabled={!commentText.trim() || isSubmittingComment}
+                      className={`text-blue-400 hover:text-blue-300 ${
+                        !commentText.trim() || isSubmittingComment
+                          ? "opacity-50"
+                          : ""
+                      }`}
                     >
-                      Post
+                      {isSubmittingComment ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                      ) : (
+                        "Post"
+                      )}
                     </Button>
                   </div>
                 ) : (
                   <div>
                     <Link
-                      href="/"
+                      href="/login"
                       className="text-sm text-blue-400 hover:text-blue-300"
                     >
                       Log in
@@ -380,8 +499,14 @@ export function PostModal({
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 rounded-full"
+                    onClick={handleLike}
+                    disabled={!isLoggedIn}
                   >
-                    <Heart className="h-5 w-5" />
+                    <Heart
+                      className={`h-5 w-5 ${
+                        isLiked ? "fill-red-500 text-red-500" : ""
+                      }`}
+                    />
                     <span className="sr-only">Like</span>
                   </Button>
                   <Button
@@ -395,7 +520,7 @@ export function PostModal({
                   </Button>
                 </div>
                 <p className="text-xs font-semibold">
-                  {post.likes.toLocaleString()} likes
+                  {likesCount.toLocaleString()} likes
                 </p>
               </div>
             </div>
@@ -468,7 +593,7 @@ export function PostModal({
                 </div>
 
                 {/* Comments */}
-                {post.comments.map((comment, index) => (
+                {localComments.map((comment, index) => (
                   <div key={index} className="flex gap-3">
                     <Avatar className="w-8 h-8 border border-zinc-700">
                       <AvatarImage
@@ -494,7 +619,7 @@ export function PostModal({
                         {comment.comment}
                       </p>
                       <p className="text-xs text-zinc-500 mt-1">
-                        {comment.timeAgo || "1d"}
+                        {comment.timeAgo || "recently"}
                       </p>
                     </div>
                   </div>
@@ -509,21 +634,40 @@ export function PostModal({
                       ref={commentInputRef}
                       type="text"
                       placeholder="Add a comment..."
+                      value={commentText}
+                      onChange={e => setCommentText(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleComment();
+                        }
+                      }}
                       className="bg-transparent border-none text-sm h-9 p-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      disabled={isSubmittingComment}
                     />
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-blue-400 hover:text-blue-300"
+                      onClick={handleComment}
+                      disabled={!commentText.trim() || isSubmittingComment}
+                      className={`text-blue-400 hover:text-blue-300 ${
+                        !commentText.trim() || isSubmittingComment
+                          ? "opacity-50"
+                          : ""
+                      }`}
                     >
-                      Post
+                      {isSubmittingComment ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                      ) : (
+                        "Post"
+                      )}
                     </Button>
                   </div>
                 </div>
               ) : (
                 <div className="p-3 border-t border-zinc-800">
                   <Link
-                    href="/"
+                    href="/login"
                     className="text-sm text-blue-400 hover:text-blue-300"
                   >
                     Log in

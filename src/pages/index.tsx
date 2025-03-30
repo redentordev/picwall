@@ -58,11 +58,22 @@ const generateDummyPosts = (count: number, startIndex: number = 0) => {
       likes,
       caption,
       comments,
+      liked: false, // Dummy posts are not liked by default
     };
   });
 };
 
 const PAGE_SIZE = 3;
+
+// Generate a placeholder username from user ID
+const generateUsernameFromId = (userId: string): string => {
+  // Handle cases where userId might be undefined or null
+  if (!userId) return "user";
+
+  // Create a username pattern: user_1234 (last 4 chars of ID)
+  const shortId = userId.slice(-4);
+  return `user_${shortId}`;
+};
 
 export default function Home() {
   const { data: session } = useSession();
@@ -85,18 +96,82 @@ export default function Home() {
   const getKey = (pageIndex: number, previousPageData: any) => {
     if (previousPageData && !previousPageData.length) return null;
 
-    return [`/api/posts`, pageIndex];
+    // If logged in, fetch from the API, otherwise use the dummy data path
+    if (isLoggedIn) {
+      return [
+        `/api/post?skip=${pageIndex * PAGE_SIZE}&limit=${PAGE_SIZE}`,
+        pageIndex,
+      ];
+    } else {
+      return [`/api/dummy-posts`, pageIndex];
+    }
   };
 
-  const fetcher = async ([_, pageIndex]: [string, number]) => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return generateDummyPosts(PAGE_SIZE, pageIndex * PAGE_SIZE);
+  const fetcher = async ([url, pageIndex]: [string, number]) => {
+    // Use real API for logged-in users
+    if (isLoggedIn) {
+      try {
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch posts");
+        }
+
+        const data = await response.json();
+        console.log("API response:", data); // Debug the API response
+
+        // Map the API response to match the expected format
+        return (data.posts || []).map((post: any) => {
+          // Ensure we have a valid string username
+          const username = generateUsernameFromId(post.userId);
+
+          // Generate image URL safely
+          const imageId = post.id || Math.random().toString(36).substring(7);
+          const userImageUrl = `https://picsum.photos/seed/${imageId}_user/800/800`;
+
+          // Process comments safely
+          const processedComments = Array.isArray(post.comments)
+            ? post.comments.map((comment: any) => ({
+                username: generateUsernameFromId(comment.userId),
+                comment: comment.comment || "No comment text",
+                timeAgo: comment.timeAgo || "recently", // Use timeAgo from comment if available
+              }))
+            : [];
+
+          // Check if the current user has liked this post
+          const isLiked =
+            Array.isArray(post.likes) && session?.user?.id
+              ? post.likes.includes(session.user.id)
+              : false;
+
+          return {
+            id: post.id || "unknown",
+            username,
+            userImage: userImageUrl,
+            timeAgo: post.timeAgo || "recently", // Use timeAgo from post
+            image: post.image || "/placeholder.svg",
+            likes: post.likes?.length || 0,
+            caption: post.caption || "",
+            comments: processedComments,
+            liked: isLiked, // Track if current user has liked this post
+          };
+        });
+      } catch (error) {
+        console.error("Error fetching posts:", error);
+        return [];
+      }
+    } else {
+      // For non-logged-in users, use dummy data
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return generateDummyPosts(PAGE_SIZE, pageIndex * PAGE_SIZE);
+    }
   };
 
   const { data, error, isLoading, isValidating, size, setSize } =
     useSWRInfinite(getKey, fetcher, {
       revalidateFirstPage: false,
       persistSize: true,
+      revalidateOnFocus: isLoggedIn, // Only revalidate on focus for logged-in users
     });
 
   const posts = data ? data.flat() : [];
@@ -155,6 +230,12 @@ export default function Home() {
           }`}
           suppressHydrationWarning
         >
+          {isLoggedIn && (
+            <div className="text-lg font-medium mb-6">
+              {isLoggedIn ? "Your Feed" : "Discover"}
+            </div>
+          )}
+
           {isLoading && size === 1 ? (
             <div className="text-center py-10">Loading posts...</div>
           ) : error ? (
@@ -162,7 +243,11 @@ export default function Home() {
               Error loading posts. Please try again.
             </div>
           ) : isEmpty ? (
-            <div className="text-center py-10">No posts found.</div>
+            <div className="text-center py-10">
+              {isLoggedIn
+                ? "No posts found. Follow some users or create your first post!"
+                : "No posts found."}
+            </div>
           ) : (
             <>
               {posts.map(post => (
@@ -177,6 +262,7 @@ export default function Home() {
                   caption={post.caption}
                   comments={post.comments}
                   isLoggedIn={isLoggedIn}
+                  liked={post.liked}
                 />
               ))}
 

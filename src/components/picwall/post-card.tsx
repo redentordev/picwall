@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -8,10 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Heart, MessageCircle, Send, Bookmark } from "lucide-react";
 import { PostModal } from "./post-modal";
+import { useSession } from "@/lib/auth-client";
 
 interface Comment {
   username: string;
   comment: string;
+  timeAgo?: string;
+  userImage?: string;
 }
 
 interface PostCardProps {
@@ -24,6 +27,7 @@ interface PostCardProps {
   caption: string;
   comments: Comment[];
   isLoggedIn: boolean;
+  liked?: boolean;
 }
 
 export function PostCard({
@@ -36,12 +40,19 @@ export function PostCard({
   caption,
   comments,
   isLoggedIn,
+  liked = false,
 }: PostCardProps) {
-  const [isLiked, setIsLiked] = useState(false);
+  const [isLiked, setIsLiked] = useState(liked);
+  const [likesCount, setLikesCount] = useState(likes);
   const [isSaved, setIsSaved] = useState(false);
   const [showAllComments, setShowAllComments] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [localComments, setLocalComments] = useState<Comment[]>(comments);
+  const { data: session } = useSession();
+  const commentInputRef = useRef<HTMLInputElement>(null);
 
   // Check if we're on a mobile device
   useState(() => {
@@ -61,14 +72,47 @@ export function PostCard({
     }
   });
 
-  const displayedComments = showAllComments ? comments : comments.slice(0, 2);
+  const displayedComments = showAllComments
+    ? localComments
+    : localComments.slice(0, 2);
 
-  const handleLike = () => {
-    if (!isLoggedIn) {
+  const handleLike = async () => {
+    if (!isLoggedIn || !session?.user?.id) {
       // Redirect to login or show login modal
       return;
     }
-    setIsLiked(!isLiked);
+
+    // Optimistically update UI
+    const wasLiked = isLiked;
+    setIsLiked(!wasLiked);
+    setLikesCount(prev => (wasLiked ? prev - 1 : prev + 1));
+
+    try {
+      const action = wasLiked ? "unlike" : "like";
+      const response = await fetch(`/api/post?id=${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id,
+          userId: session.user.id,
+          action,
+        }),
+      });
+
+      if (!response.ok) {
+        // If the request failed, revert the optimistic update
+        setIsLiked(wasLiked);
+        setLikesCount(prev => (wasLiked ? prev + 1 : prev - 1));
+        console.error("Failed to update like status");
+      }
+    } catch (error) {
+      // If there was an error, revert the optimistic update
+      setIsLiked(wasLiked);
+      setLikesCount(prev => (wasLiked ? prev + 1 : prev - 1));
+      console.error("Error updating like status:", error);
+    }
   };
 
   const handleSave = () => {
@@ -77,6 +121,51 @@ export function PostCard({
       return;
     }
     setIsSaved(!isSaved);
+  };
+
+  const handleComment = async () => {
+    if (!isLoggedIn || !session?.user?.id || !commentText.trim()) {
+      return;
+    }
+
+    setIsSubmittingComment(true);
+
+    try {
+      const response = await fetch(`/api/post?id=${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id,
+          userId: session.user.id,
+          action: "comment",
+          comment: commentText,
+        }),
+      });
+
+      if (response.ok) {
+        // Add the new comment to the local state with "just now" timestamp
+        const newComment = {
+          username: username, // Using current username as fallback
+          comment: commentText,
+          timeAgo: "just now",
+        };
+        setLocalComments(prev => [...prev, newComment]);
+        setCommentText("");
+
+        // If currently showing a limited number of comments, show them all now
+        if (!showAllComments && localComments.length >= 2) {
+          setShowAllComments(true);
+        }
+      } else {
+        console.error("Failed to post comment");
+      }
+    } catch (error) {
+      console.error("Error posting comment:", error);
+    } finally {
+      setIsSubmittingComment(false);
+    }
   };
 
   const formattedCaption = caption.split(" ").map((word, index) => {
@@ -173,6 +262,15 @@ export function PostCard({
                 variant="ghost"
                 size="icon"
                 className={`h-9 w-9 rounded-full ${isMobile ? "h-8 w-8" : ""}`}
+                onClick={() => {
+                  openModal();
+                  // Focus comment input after modal opens
+                  setTimeout(() => {
+                    if (commentInputRef.current) {
+                      commentInputRef.current.focus();
+                    }
+                  }, 300);
+                }}
                 disabled={!isLoggedIn}
               >
                 <MessageCircle
@@ -186,7 +284,7 @@ export function PostCard({
           {/* Likes */}
           <div className="mb-2">
             <p className={`${isMobile ? "text-xs" : "text-sm"} font-semibold`}>
-              {likes.toLocaleString()} likes
+              {likesCount.toLocaleString()} likes
             </p>
           </div>
 
@@ -204,16 +302,16 @@ export function PostCard({
           </div>
 
           {/* Comments */}
-          {comments.length > 0 && (
+          {localComments.length > 0 && (
             <div className="space-y-1">
-              {comments.length > 2 && !showAllComments && (
+              {localComments.length > 2 && !showAllComments && (
                 <button
                   className={`${
                     isMobile ? "text-xs" : "text-sm"
                   } text-zinc-500 hover:text-zinc-400`}
                   onClick={() => setShowAllComments(true)}
                 >
-                  View all {comments.length} comments
+                  View all {localComments.length} comments
                 </button>
               )}
 
@@ -231,6 +329,11 @@ export function PostCard({
                     {comment.username}
                   </Link>
                   {comment.comment}
+                  {comment.timeAgo && (
+                    <span className="text-xs text-zinc-500 ml-2">
+                      {comment.timeAgo}
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
@@ -242,18 +345,31 @@ export function PostCard({
               <Input
                 type="text"
                 placeholder="Add a comment..."
+                value={commentText}
+                onChange={e => setCommentText(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleComment();
+                  }
+                }}
                 className={`bg-transparent border-none ${
                   isMobile ? "text-xs" : "text-sm"
                 } h-9 p-0 focus-visible:ring-0 focus-visible:ring-offset-0`}
+                disabled={isSubmittingComment}
               />
               <Button
                 variant="ghost"
                 size="sm"
+                onClick={handleComment}
+                disabled={!commentText.trim() || isSubmittingComment}
                 className={`text-blue-400 hover:text-blue-300 ${
                   isMobile ? "text-xs" : "text-sm"
+                } ${
+                  !commentText.trim() || isSubmittingComment ? "opacity-50" : ""
                 }`}
               >
-                Post
+                {isSubmittingComment ? "Posting..." : "Post"}
               </Button>
             </div>
           ) : (
@@ -287,9 +403,10 @@ export function PostCard({
           userImage,
           timeAgo,
           image,
-          likes,
+          likes: likesCount,
           caption,
-          comments,
+          comments: localComments,
+          liked: isLiked,
         }}
         isLoggedIn={isLoggedIn}
       />

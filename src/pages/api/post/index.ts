@@ -114,7 +114,11 @@ async function PUT(req: NextApiRequest, res: NextApiResponse) {
         return res.status(400).json({ error: 'Comment text is required' });
       }
       
-      post.comments.push({ userId, comment });
+      post.comments.push({ 
+        userId, 
+        comment,
+        createdAt: new Date() 
+      });
       await post.save();
       return res.status(200).json({ success: true, post });
     }

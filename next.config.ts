@@ -8,6 +8,9 @@ const nextConfig: NextConfig = {
       {
         hostname: "picsum.photos",
       },
+      {
+        hostname: "picwall-webtech.s3.us-east-1.amazonaws.com",
+      }
     ],
   },
   experimental: {
