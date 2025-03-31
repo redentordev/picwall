@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "dev.redentor.picwall.twa",
+        "sha256_cert_fingerprints": ["82:50:30:ED:58:40:D2:F5:61:04:C1:3A:A8:E7:7F:0B:30:21:0D:83:64:46:5E:58:F8:CE:08:26:A9:CC:B7:D9"]
+      }
+    }]
