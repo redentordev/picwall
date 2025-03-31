@@ -124,6 +124,7 @@ const getUserImage = (
 
 export default function Home() {
   const { data: session } = useSession();
+  console.log("session", session);
   const isLoggedIn = !!session;
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
