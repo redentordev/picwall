@@ -20,10 +20,10 @@ export function ProfileHeader({
     session?.user?.id === user.id || session?.user?.email === user.email;
 
   return (
-    <div className="px-4 py-6">
+    <div className="px-4 py-6 mt-16 md:mt-0">
       <div className="flex flex-col sm:flex-row items-center gap-6">
         {/* Profile image */}
-        <div className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-full overflow-hidden border-2 border-zinc-800">
+        <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden border-2 border-zinc-800 flex-shrink-0">
           <Image
             src={
               user.image || `https://picsum.photos/seed/${user.id}_user/200/200`
@@ -36,7 +36,7 @@ export function ProfileHeader({
         </div>
 
         {/* User info */}
-        <div className="flex flex-col items-center sm:items-start flex-grow">
+        <div className="flex flex-col items-center sm:items-start flex-grow mt-4 sm:mt-0">
           <div className="flex items-center gap-4 mb-2">
             <h1 className="text-2xl font-bold">{user.name}</h1>
             {isOwnProfile && (

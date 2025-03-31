@@ -116,8 +116,8 @@ export function ProfileGallery({ posts, isLoading }: ProfileGalleryProps) {
             typeof postData.post.likes === "number"
               ? postData.post.likes
               : Array.isArray(postData.post.likes)
-                ? postData.post.likes.length
-                : 0,
+              ? postData.post.likes.length
+              : 0,
           caption: postData.post.caption || "",
           comments: Array.isArray(postData.post.comments)
             ? postData.post.comments.map((comment: any) => {
@@ -177,8 +177,8 @@ export function ProfileGallery({ posts, isLoading }: ProfileGalleryProps) {
   }
 
   return (
-    <div className="px-4 py-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-1">
+    <div className="px-2 sm:px-4 py-4 sm:py-6">
+      <div className="grid grid-cols-3 gap-1 sm:gap-2">
         {posts.map(post => (
           <div
             key={post.id}
@@ -193,33 +193,32 @@ export function ProfileGallery({ posts, isLoading }: ProfileGalleryProps) {
                     {typeof post.likes === "number"
                       ? post.likes
                       : Array.isArray(post.likes)
-                        ? post.likes.length
-                        : 0}
+                      ? post.likes.length
+                      : 0}
                   </span>
                 </div>
                 <div className="flex items-center gap-1">
                   <MessageCircle className="w-5 h-5" />
                   <span className="text-sm font-medium">
-                    {typeof post.comments === "number"
-                      ? post.comments
-                      : Array.isArray(post.comments)
-                        ? post.comments.length
-                        : 0}
+                    {Array.isArray(post.comments) ? post.comments.length : 0}
                   </span>
                 </div>
               </div>
             </div>
-            <Image
-              src={post.image || "https://via.placeholder.com/500"}
-              alt={post.caption ? post.caption.substring(0, 50) : "Post image"}
-              fill
-              className="object-cover"
-            />
+            <div className="relative w-full h-full overflow-hidden">
+              <Image
+                src={post.image}
+                alt={post.caption || "Post"}
+                fill
+                sizes="(max-width: 640px) 33vw, (max-width: 768px) 50vw, 33vw"
+                className="object-cover"
+              />
+            </div>
           </div>
         ))}
       </div>
 
-      {isModalOpen && formattedPost && (
+      {isLoggedIn && selectedPostId && formattedPost && (
         <PostModal
           isOpen={isModalOpen}
           onClose={handleCloseModal}

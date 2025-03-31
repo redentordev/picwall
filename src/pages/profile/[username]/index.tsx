@@ -126,7 +126,7 @@ const ProfilePage: NextPage<ProfilePageProps> = ({
         <Sidebar />
 
         {/* Main content */}
-        <main className="flex-1 max-w-6xl mx-auto">
+        <main className="flex-1 max-w-6xl mx-auto pb-24 md:pb-0">
           <ProfileHeader
             user={user}
             postsCount={posts.length}

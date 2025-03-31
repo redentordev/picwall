@@ -275,41 +275,39 @@ export function Sidebar({ onPostCreated }: SidebarProps = {}) {
           <MobileNavIcon
             href="/login"
             icon={
-              <Link href="/login" className="flex items-center justify-center">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs h-auto py-1 text-zinc-500 hover:text-white"
-                >
-                  Login
-                </Button>
-              </Link>
+              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-pink-500">
+                <PlusSquare className="w-6 h-6 text-white" />
+              </div>
             }
           />
         )}
-        <MobileNavIcon
-          href={isLoggedIn ? "/profile" : "/login"}
-          icon={
-            isLoggedIn ? (
+        {isLoggedIn ? (
+          <MobileNavIcon
+            href="/profile"
+            icon={
               <User
                 className={cn(
                   "w-6 h-6",
                   pathname === "/profile" ? "text-white" : "text-zinc-500"
                 )}
               />
-            ) : (
-              <Link href="/login" className="flex items-center justify-center">
-                <Button
-                  size="sm"
-                  className="text-xs h-auto py-1 bg-gradient-to-r from-purple-500 to-pink-500 font-bold text-white"
-                >
-                  Sign up
-                </Button>
-              </Link>
-            )
-          }
-        />
-        {isLoggedIn && (
+            }
+          />
+        ) : (
+          <MobileNavIcon
+            href="/login"
+            icon={
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs h-auto py-1 text-zinc-500 hover:text-white"
+              >
+                Login
+              </Button>
+            }
+          />
+        )}
+        {isLoggedIn ? (
           <MobileNavIcon
             href="#"
             onClick={async () => {
@@ -317,6 +315,18 @@ export function Sidebar({ onPostCreated }: SidebarProps = {}) {
               router.push("/login");
             }}
             icon={<LogOut className="w-6 h-6 text-red-400" />}
+          />
+        ) : (
+          <MobileNavIcon
+            href="/login"
+            icon={
+              <Button
+                size="sm"
+                className="text-xs h-auto py-1 bg-gradient-to-r from-purple-500 to-pink-500 font-bold text-white"
+              >
+                Sign up
+              </Button>
+            }
           />
         )}
       </div>
