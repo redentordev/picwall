@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Upload, Camera } from "lucide-react";
+import imageCompression from "browser-image-compression";
 
 interface EditProfileModalProps {
   user: User;
@@ -89,12 +90,39 @@ export default function EditProfileModal({
 
   const uploadImage = async (imageDataUrl: string) => {
     try {
+      setUploadFeedback("Compressing your image...");
+
+      // Convert base64 to file object for compression
+      const fetchRes = await fetch(imageDataUrl);
+      const blob = await fetchRes.blob();
+      const file = new File([blob], "profile.jpg", { type: "image/jpeg" });
+
+      // Compress the image
+      const options = {
+        maxSizeMB: 0.5, // Smaller size for profile pictures
+        maxWidthOrHeight: 800, // Reasonable size for profile pictures
+        useWebWorker: true, // Use web worker for better performance
+      };
+
+      const compressedFile = await imageCompression(file, options);
+      console.log(`Original size: ${file.size / 1024 / 1024} MB`);
+      console.log(`Compressed size: ${compressedFile.size / 1024 / 1024} MB`);
+
+      // Convert compressed file to base64
+      const reader = new FileReader();
+      const compressedImageDataUrl = await new Promise<string>(resolve => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(compressedFile);
+      });
+
+      setUploadFeedback("Uploading your image...");
+
       const uploadResponse = await fetch("/api/upload", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ image: imageDataUrl }),
+        body: JSON.stringify({ image: compressedImageDataUrl }),
       });
 
       if (!uploadResponse.ok) {

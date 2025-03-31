@@ -2,6 +2,15 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { randomUUID } from "crypto";
 
+// Configure API to accept larger uploads - 10MB
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
+  },
+};
+
 const s3Client = new S3Client({
   region: process.env.AWS_REGION!,
   credentials: {

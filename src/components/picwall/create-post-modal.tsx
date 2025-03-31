@@ -20,6 +20,7 @@ import {
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { ImageIcon, X, ChevronRight, Loader2 } from "lucide-react";
 import { useSession } from "@/lib/auth-client";
+import imageCompression from "browser-image-compression";
 
 interface CreatePostModalProps {
   isOpen: boolean;
@@ -73,17 +74,41 @@ export function CreatePostModal({
     setIsUploading(true);
     setFeedbackMessage({
       type: "info",
-      message: "Uploading your image...",
+      message: "Compressing and uploading your image...",
     });
 
     try {
-      console.log("Starting immediate image upload...");
+      // Convert base64 to file object for compression
+      const fetchRes = await fetch(imageDataUrl);
+      const blob = await fetchRes.blob();
+      const file = new File([blob], "image.jpg", { type: "image/jpeg" });
+
+      // Compress the image
+      const options = {
+        maxSizeMB: 1, // Maximum size in MB
+        maxWidthOrHeight: 1800, // Max width/height
+        useWebWorker: true, // Use web worker for better performance
+      };
+
+      console.log("Starting image compression...");
+      const compressedFile = await imageCompression(file, options);
+      console.log(`Original size: ${file.size / 1024 / 1024} MB`);
+      console.log(`Compressed size: ${compressedFile.size / 1024 / 1024} MB`);
+
+      // Convert compressed file to base64
+      const reader = new FileReader();
+      const compressedImageDataUrl = await new Promise<string>(resolve => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(compressedFile);
+      });
+
+      // Upload the compressed image
       const uploadResponse = await fetch("/api/upload", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ image: imageDataUrl }),
+        body: JSON.stringify({ image: compressedImageDataUrl }),
       });
 
       console.log("Upload response status:", uploadResponse.status);
@@ -397,8 +422,8 @@ export function CreatePostModal({
               feedbackMessage.type === "error"
                 ? "bg-red-500/20 text-red-200"
                 : feedbackMessage.type === "success"
-                  ? "bg-green-500/20 text-green-200"
-                  : "bg-blue-500/20 text-blue-200"
+                ? "bg-green-500/20 text-green-200"
+                : "bg-blue-500/20 text-blue-200"
             }`}
           >
             {feedbackMessage.message}

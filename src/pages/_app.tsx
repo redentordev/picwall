@@ -24,11 +24,20 @@ export default function App({ Component, pageProps }: AppProps) {
     }
   }, []);
 
+  // Force dark mode by adding dark class to body
+  useEffect(() => {
+    document.body.classList.add("dark");
+    // Add a fallback background color
+    document.body.style.backgroundColor = "#0a0a0a";
+    document.body.style.color = "#ededed";
+  }, []);
+
   return (
     <ThemeProvider
       attribute="class"
-      defaultTheme="system"
-      enableSystem
+      defaultTheme="dark"
+      enableSystem={false}
+      forcedTheme="dark"
       disableTransitionOnChange
     >
       <DefaultSeo

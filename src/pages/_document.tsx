@@ -20,7 +20,7 @@ export default function Document() {
         <link rel="manifest" href="/manifest.json" />
         <link rel="shortcut icon" href="/favicon.ico" />
       </Head>
-      <body className="antialiased">
+      <body className="antialiased dark bg-black text-white">
         <Main />
         <NextScript />
       </body>
