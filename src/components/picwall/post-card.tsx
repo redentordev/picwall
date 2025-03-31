@@ -36,6 +36,21 @@ const formatUsername = (email: string): string => {
   return email;
 };
 
+// Function to get user image with fallback
+const getUserImage = (image: string | undefined, username: string): string => {
+  if (image) return image;
+  // Create a deterministic seed from the username
+  const seed = username ? username.replace(/[^a-zA-Z0-9]/g, "") : "default";
+  return `https://picsum.photos/seed/${seed}_user/200/200`;
+};
+
+// Function to get fallback avatar image
+const getAvatarFallback = (username: string): string => {
+  return username
+    ? formatUsername(username).substring(0, 2).toUpperCase()
+    : "US";
+};
+
 export function PostCard({
   id,
   username,
@@ -321,21 +336,29 @@ export function PostCard({
 
           {/* Likes */}
           <div className="mb-2">
-            <p className={`${isMobile ? "text-xs" : "text-sm"} font-semibold`}>
+            <p
+              className={`${
+                isMobile ? "text-xs" : "text-sm"
+              } font-semibold text-white`}
+            >
               {likesCount.toLocaleString()} likes
             </p>
           </div>
 
           {/* Caption */}
           <div className="mb-2">
-            <p className={`${isMobile ? "text-xs leading-normal" : "text-sm"}`}>
+            <p
+              className={`${
+                isMobile ? "text-xs leading-normal" : "text-sm"
+              } text-white`}
+            >
               <Link
                 href={isLoggedIn ? `/profile/${username}` : "/login"}
-                className="font-semibold mr-1 hover:underline"
+                className="font-semibold mr-1 hover:underline text-white"
               >
                 {formatUsername(username)}
               </Link>
-              {formattedCaption}
+              <span className="text-white">{formattedCaption}</span>
             </p>
           </div>
 
@@ -356,20 +379,47 @@ export function PostCard({
               {displayedComments.map((comment, index) => (
                 <div
                   key={index}
-                  className={`${isMobile ? "text-xs" : "text-sm"}`}
+                  className={`flex items-start gap-2 ${isMobile ? "py-1" : ""}`}
                 >
-                  <Link
-                    href={
-                      isLoggedIn ? `/profile/${comment.username}` : "/login"
-                    }
-                    className="font-semibold mr-1 hover:underline"
+                  {/* Show avatar in both mobile and desktop */}
+                  <Avatar
+                    className={`${
+                      isMobile ? "w-6 h-6" : "w-7 h-7"
+                    } border border-zinc-700 flex-shrink-0`}
                   >
-                    {formatUsername(comment.username)}
-                  </Link>
-                  {comment.comment}
-                  <span className="text-xs text-zinc-500 ml-2">
-                    {comment.timeAgo || "recently"}
-                  </span>
+                    <AvatarImage
+                      src={
+                        comment.userImage ||
+                        getUserImage(undefined, comment.username)
+                      }
+                      alt={comment.username}
+                    />
+                    <AvatarFallback>
+                      {getAvatarFallback(comment.username)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <div
+                      className={`${
+                        isMobile ? "text-xs" : "text-sm"
+                      } text-white`}
+                    >
+                      <Link
+                        href={
+                          isLoggedIn ? `/profile/${comment.username}` : "/login"
+                        }
+                        className="font-semibold mr-1 hover:underline text-white"
+                      >
+                        {formatUsername(comment.username)}
+                      </Link>
+                      <span className="break-words text-white">
+                        {comment.comment}
+                      </span>
+                    </div>
+                    <span className="text-xs text-zinc-500 block mt-1">
+                      {comment.timeAgo || "recently"}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -391,7 +441,7 @@ export function PostCard({
                 }}
                 className={`bg-transparent border-none ${
                   isMobile ? "text-xs" : "text-sm"
-                } h-9 p-0 focus-visible:ring-0 focus-visible:ring-offset-0`}
+                } h-9 p-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-white placeholder:text-zinc-500`}
                 disabled={isSubmittingComment}
               />
               <Button

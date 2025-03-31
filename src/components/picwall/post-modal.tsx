@@ -372,15 +372,15 @@ export function PostModal({
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="text-sm">
+                    <p className="text-sm text-white">
                       <Link
                         href={`/profile/${post.username}`}
-                        className="font-semibold mr-1 hover:underline"
+                        className="font-semibold mr-1 hover:underline text-white"
                         onClick={e => e.stopPropagation()}
                       >
                         {formatUsername(post.username)}
                       </Link>
-                      {formattedCaption}
+                      <span className="text-white">{formattedCaption}</span>
                     </p>
                     <p className="text-xs text-zinc-500 mt-1">{post.timeAgo}</p>
                   </div>
@@ -402,15 +402,15 @@ export function PostModal({
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="text-sm">
+                      <p className="text-sm text-white">
                         <Link
                           href={`/profile/${comment.username}`}
-                          className="font-semibold mr-1 hover:underline"
+                          className="font-semibold mr-1 hover:underline text-white"
                           onClick={e => e.stopPropagation()}
                         >
                           {formatUsername(comment.username)}
                         </Link>
-                        {comment.comment}
+                        <span className="text-white">{comment.comment}</span>
                       </p>
                       <p className="text-xs text-zinc-500 mt-1">
                         {comment.timeAgo || "recently"}
@@ -472,7 +472,7 @@ export function PostModal({
                           handleComment();
                         }
                       }}
-                      className="bg-transparent border-none text-sm h-9 p-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      className="bg-transparent border-none text-sm h-9 p-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-white placeholder:text-zinc-500"
                       disabled={isSubmittingComment}
                     />
                     <Button
@@ -525,7 +525,7 @@ export function PostModal({
               </Avatar>
               <Link
                 href={`/profile/${post.username}`}
-                className="text-sm font-medium hover:underline"
+                className="text-sm font-medium hover:underline text-white"
                 onClick={e => e.stopPropagation()}
               >
                 {formatUsername(post.username)}
@@ -558,15 +558,15 @@ export function PostModal({
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="text-sm">
+                    <p className="text-sm text-white">
                       <Link
                         href={`/profile/${post.username}`}
-                        className="font-semibold mr-1 hover:underline"
+                        className="font-semibold mr-1 hover:underline text-white"
                         onClick={e => e.stopPropagation()}
                       >
                         {formatUsername(post.username)}
                       </Link>
-                      {formattedCaption}
+                      <span className="text-white">{formattedCaption}</span>
                     </p>
                     <p className="text-xs text-zinc-500 mt-1">{post.timeAgo}</p>
                   </div>
@@ -588,15 +588,15 @@ export function PostModal({
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="text-sm">
+                      <p className="text-sm text-white">
                         <Link
                           href={`/profile/${comment.username}`}
-                          className="font-semibold mr-1 hover:underline"
+                          className="font-semibold mr-1 hover:underline text-white"
                           onClick={e => e.stopPropagation()}
                         >
                           {formatUsername(comment.username)}
                         </Link>
-                        {comment.comment}
+                        <span className="text-white">{comment.comment}</span>
                       </p>
                       <p className="text-xs text-zinc-500 mt-1">
                         {comment.timeAgo || "recently"}
@@ -647,7 +647,7 @@ export function PostModal({
                         handleComment();
                       }
                     }}
-                    className="bg-transparent border-none text-sm h-9 p-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    className="bg-transparent border-none text-sm h-9 p-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-white placeholder:text-zinc-500"
                     disabled={isSubmittingComment}
                   />
                   <Button

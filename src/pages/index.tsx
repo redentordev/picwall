@@ -122,6 +122,34 @@ const getUserImage = (
   return `https://picsum.photos/seed/${userId || "default"}_user/200/200`;
 };
 
+// New function to fetch multiple users at once
+const fetchMultipleUsers = async (
+  userIds: string[]
+): Promise<Map<string, any>> => {
+  if (!userIds.length) return new Map();
+
+  try {
+    const response = await fetch(`/api/users?ids=${userIds.join(",")}`);
+    if (!response.ok) throw new Error("Failed to fetch users");
+
+    const data = await response.json();
+    const userMap = new Map();
+
+    if (data.users && Array.isArray(data.users)) {
+      data.users.forEach((user: any) => {
+        userMap.set(user.id, user);
+        // Also update the email cache
+        userCache.set(user.id, user.email);
+      });
+    }
+
+    return userMap;
+  } catch (error) {
+    console.error("Error fetching multiple users:", error);
+    return new Map();
+  }
+};
+
 export default function Home() {
   const { data: session } = useSession();
   console.log("session", session);
@@ -167,95 +195,77 @@ export default function Home() {
         }
 
         const data = await response.json();
-        console.log("API response:", data); // Debug the API response
 
-        // Process posts in parallel to get user emails
-        const processedPosts = await Promise.all(
-          (data.posts || []).map(async (post: any) => {
-            // Get email for the post author
-            const authorEmail = await getUserEmailById(post.userId);
+        if (
+          !data.posts ||
+          !Array.isArray(data.posts) ||
+          data.posts.length === 0
+        ) {
+          return [];
+        }
 
-            // Get the user data for profile image
-            let userImageUrl;
-            try {
-              const userResponse = await fetch(`/api/user?id=${post.userId}`);
-              if (userResponse.ok) {
-                const userData = await userResponse.json();
-                // Use the image from user data or fallback to generated image
-                userImageUrl = getUserImage(userData.user.image, post.userId);
-              } else {
-                // Fallback to generated image
-                userImageUrl = getUserImage(null, post.userId);
-              }
-            } catch (error) {
-              console.error("Error fetching user image:", error);
-              userImageUrl = getUserImage(null, post.userId);
-            }
+        // Extract all unique user IDs (post authors and comment authors)
+        const postAuthorIds = data.posts.map((post: any) => post.userId);
+        const commentAuthorIds = data.posts
+          .flatMap((post: any) =>
+            Array.isArray(post.comments)
+              ? post.comments.map((c: any) => c.userId)
+              : []
+          )
+          .filter(Boolean);
 
-            // Process comments to get emails for comment authors
-            const processedComments = await Promise.all(
-              Array.isArray(post.comments)
-                ? post.comments.map(async (comment: any) => {
-                    const commentAuthorEmail = await getUserEmailById(
-                      comment.userId
-                    );
+        // Combine all user IDs and remove duplicates
+        const allUserIds = [
+          ...new Set([...postAuthorIds, ...commentAuthorIds]),
+        ];
 
-                    // Get user image for comment author
-                    let commentUserImage;
-                    try {
-                      const userResponse = await fetch(
-                        `/api/user?id=${comment.userId}`
-                      );
-                      if (userResponse.ok) {
-                        const userData = await userResponse.json();
-                        commentUserImage = getUserImage(
-                          userData.user.image,
-                          comment.userId
-                        );
-                      } else {
-                        commentUserImage = getUserImage(null, comment.userId);
-                      }
-                    } catch (error) {
-                      console.error(
-                        "Error fetching comment user image:",
-                        error
-                      );
-                      commentUserImage = getUserImage(null, comment.userId);
-                    }
+        // Fetch all users in one batch request
+        const usersMap = await fetchMultipleUsers(allUserIds);
 
-                    return {
-                      username: commentAuthorEmail,
-                      comment: comment.comment || "No comment text",
-                      timeAgo: comment.createdAt
-                        ? formatTimeAgo(new Date(comment.createdAt))
-                        : formatTimeAgo(new Date()),
-                      userImage: commentUserImage,
-                    };
-                  })
-                : []
-            );
+        // Process posts with the user data we fetched
+        const processedPosts = data.posts.map((post: any) => {
+          const author = usersMap.get(post.userId) || {};
+          const authorEmail =
+            author.email || `user_${post.userId.slice(-4)}@example.com`;
+          const userImageUrl = getUserImage(author.image, post.userId);
 
-            // Check if the current user has liked this post
-            const isLiked =
-              Array.isArray(post.likes) && session?.user?.id
-                ? post.likes.includes(session.user.id)
-                : false;
+          // Process comments
+          const processedComments = Array.isArray(post.comments)
+            ? post.comments.map((comment: any) => {
+                const commentAuthor = usersMap.get(comment.userId) || {};
+                return {
+                  username:
+                    commentAuthor.email ||
+                    `user_${comment.userId.slice(-4)}@example.com`,
+                  comment: comment.comment || "No comment text",
+                  timeAgo: comment.createdAt
+                    ? formatTimeAgo(new Date(comment.createdAt))
+                    : formatTimeAgo(new Date()),
+                  userImage: getUserImage(commentAuthor.image, comment.userId),
+                };
+              })
+            : [];
 
-            return {
-              id: post.id || "unknown",
-              username: authorEmail,
-              userImage: userImageUrl,
-              timeAgo: post.createdAt
-                ? formatTimeAgo(new Date(post.createdAt))
-                : post.timeAgo || "recently",
-              image: post.image || "/placeholder.svg",
-              likes: post.likes?.length || 0,
-              caption: post.caption || "",
-              comments: processedComments,
-              liked: isLiked,
-            };
-          })
-        );
+          // Check if the current user has liked this post
+          const isLiked =
+            Array.isArray(post.likes) && session?.user?.id
+              ? post.likes.includes(session.user.id)
+              : false;
+
+          return {
+            id: post.id || "unknown",
+            username: authorEmail,
+            userImage: userImageUrl,
+            timeAgo: post.createdAt
+              ? formatTimeAgo(new Date(post.createdAt))
+              : post.timeAgo || "recently",
+            image: post.image || "/placeholder.svg",
+            likes: post.likes?.length || 0,
+            caption: post.caption || "",
+            comments: processedComments,
+            liked: isLiked,
+          };
+        });
 
         return processedPosts;
       } catch (error) {
@@ -345,7 +355,38 @@ export default function Home() {
           )}
 
           {isLoading && size === 1 ? (
-            <div className="text-center py-10">Loading posts...</div>
+            // Loading skeleton cards for better UX
+            <div className="space-y-8">
+              {[1, 2, 3].map((_, i) => (
+                <div key={i} className="bg-zinc-900 rounded-md overflow-hidden">
+                  {/* Skeleton header */}
+                  <div className="p-3 flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-zinc-800 animate-pulse"></div>
+                    <div className="h-4 w-32 bg-zinc-800 animate-pulse rounded"></div>
+                  </div>
+
+                  {/* Skeleton image */}
+                  <div className="aspect-square bg-zinc-800 animate-pulse"></div>
+
+                  {/* Skeleton content */}
+                  <div className="p-3 space-y-3">
+                    <div className="flex gap-3">
+                      <div className="h-8 w-8 rounded-full bg-zinc-800 animate-pulse"></div>
+                      <div className="h-8 w-8 rounded-full bg-zinc-800 animate-pulse"></div>
+                    </div>
+                    <div className="h-4 w-24 bg-zinc-800 animate-pulse rounded"></div>
+                    <div className="h-4 w-full bg-zinc-800 animate-pulse rounded"></div>
+                    <div className="h-4 w-3/4 bg-zinc-800 animate-pulse rounded"></div>
+
+                    {/* Skeleton comments */}
+                    <div className="mt-2">
+                      <div className="h-3 w-48 bg-zinc-800 animate-pulse rounded mb-2"></div>
+                      <div className="h-3 w-32 bg-zinc-800 animate-pulse rounded"></div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : error ? (
             <div className="text-center py-10 text-red-500">
               Error loading posts. Please try again.
@@ -376,7 +417,10 @@ export default function Home() {
 
               <div ref={loadMoreRef} className="py-4 text-center">
                 {isLoadingMore ? (
-                  <div className="text-zinc-400">Loading more posts...</div>
+                  <div className="flex justify-center items-center gap-2">
+                    <div className="w-5 h-5 rounded-full border-2 border-zinc-400 border-t-transparent animate-spin"></div>
+                    <span className="text-zinc-400">Loading more posts...</span>
+                  </div>
                 ) : isReachingEnd ? (
                   <div className="text-zinc-500">No more posts to load</div>
                 ) : (
