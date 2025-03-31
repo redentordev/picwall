@@ -24,6 +24,25 @@ PicWall is a modern image sharing platform built with Next.js where users can sh
 - **Responsive Design**
   - Works on mobile, tablet, and desktop devices
   - Optimized UI for different screen sizes
+  - **Progressive Web App (PWA)** - install as a mobile application
+
+## Mobile Application
+
+PicWall can be installed as a mobile application on your device:
+
+### Installation Options
+
+1. **Direct Download**:
+
+   - Download the APK from [Google Drive](https://drive.google.com/file/d/1witkgh0CJG97mUzFZW081Uohl90pHOIi/view?usp=sharing)
+   - Open the APK file on your Android device to install
+
+2. **Install from Browser** (PWA):
+   - Visit the PicWall website on your mobile device
+   - For iOS: Tap the Share button, then "Add to Home Screen"
+   - For Android: Tap the menu button, then "Install App" or "Add to Home Screen"
+
+Using the PWA version provides an app-like experience with offline capabilities and faster loading times.
 
 ## Getting Started
 
