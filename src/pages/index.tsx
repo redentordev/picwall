@@ -254,6 +254,7 @@ export default function Home() {
 
           return {
             id: post.id || "unknown",
+            userId: post.userId || "unknown",
             username: authorEmail,
             userImage: userImageUrl,
             timeAgo: post.createdAt
@@ -403,6 +404,7 @@ export default function Home() {
                 <PostCard
                   key={post.id}
                   id={post.id}
+                  userId={post.userId}
                   username={post.username}
                   userImage={post.userImage}
                   timeAgo={post.timeAgo}

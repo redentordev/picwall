@@ -126,8 +126,13 @@ async function PUT(req: NextApiRequest, res: NextApiResponse) {
       return res.status(200).json({ success: true, post });
     }
 
-    // Update caption
+    // Update caption - verify ownership first
     if (caption !== undefined) {
+      // Verify the user is the owner of this post
+      if (post.userId !== userId) {
+        return res.status(403).json({ error: "Not authorized to edit this post" });
+      }
+      
       post.caption = caption;
       await post.save();
     }
@@ -142,16 +147,30 @@ async function PUT(req: NextApiRequest, res: NextApiResponse) {
 async function DELETE(req: NextApiRequest, res: NextApiResponse) {
   try {
     const { id } = req.query;
+    const { userId } = req.body;
 
     if (!id) {
       return res.status(400).json({ error: "Post ID is required" });
     }
+    
+    if (!userId) {
+      return res.status(400).json({ error: "User ID is required" });
+    }
 
-    const post = await Post.findByIdAndDelete(id);
-
+    // First find the post to check ownership
+    const post = await Post.findById(id);
+    
     if (!post) {
       return res.status(404).json({ error: "Post not found" });
     }
+    
+    // Verify the user is the owner of this post
+    if (post.userId !== userId) {
+      return res.status(403).json({ error: "Not authorized to delete this post" });
+    }
+
+    // Delete the post
+    await Post.findByIdAndDelete(id);
 
     return res
       .status(200)

@@ -13,11 +13,37 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Heart, MessageCircle, X, Loader2 } from "lucide-react";
+import {
+  Heart,
+  MessageCircle,
+  X,
+  Loader2,
+  MoreVertical,
+  Edit,
+  Trash2,
+} from "lucide-react";
 import { useSession } from "@/lib/auth-client";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { formatTimeAgo } from "@/lib/date-utils";
 import { mutate } from "swr";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { useRouter } from "next/router";
 
 interface Comment {
   username: string;
@@ -39,6 +65,7 @@ interface PostModalProps {
     caption: string;
     comments: Comment[];
     liked?: boolean;
+    userId?: string;
   };
   isLoggedIn: boolean;
   onPostUpdate?: () => void;
@@ -85,13 +112,28 @@ export function PostModal({
   const [localComments, setLocalComments] = useState<Comment[]>(post.comments);
   const [commentText, setCommentText] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [localCaption, setLocalCaption] = useState(post.caption);
+
+  // Edit and delete states
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editCaption, setEditCaption] = useState(post.caption);
+  const [isEditingCaption, setIsEditingCaption] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Check if current user is the post owner
+  const isOwner = session?.user?.id === post.userId;
+
+  const router = useRouter();
 
   // Update local state when post props change
   useEffect(() => {
     setIsLiked(post.liked || false);
     setLikesCount(post.likes);
     setLocalComments(post.comments);
-  }, [post.liked, post.likes, post.comments]);
+    setLocalCaption(post.caption);
+    setEditCaption(post.caption);
+  }, [post.liked, post.likes, post.comments, post.caption]);
 
   // Check if we're on a mobile device
   useEffect(() => {
@@ -287,8 +329,88 @@ export function PostModal({
     }
   };
 
+  // Handle edit caption
+  const handleEditCaption = async () => {
+    if (!isLoggedIn || !session?.user?.id || !editCaption.trim()) {
+      return;
+    }
+
+    setIsEditingCaption(true);
+
+    try {
+      const response = await fetch(`/api/post?id=${post.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: post.id,
+          userId: session.user.id,
+          caption: editCaption,
+        }),
+      });
+
+      if (response.ok) {
+        // Update local state
+        setLocalCaption(editCaption);
+        setIsEditMode(false);
+
+        // Revalidate data
+        revalidateData();
+      } else {
+        console.error("Failed to update caption");
+      }
+    } catch (error) {
+      console.error("Error updating caption:", error);
+    } finally {
+      setIsEditingCaption(false);
+    }
+  };
+
+  // Handle delete post
+  const handleDeletePost = async () => {
+    if (!isLoggedIn || !session?.user?.id) {
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      const response = await fetch(`/api/post?id=${post.id}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: session.user.id,
+        }),
+      });
+
+      if (response.ok) {
+        // Close any open dialogs and the modal
+        setIsDeleteDialogOpen(false);
+        onClose();
+
+        // Revalidate data for the user's posts and feed
+        mutate("/api/posts");
+        mutate(`/api/posts?userId=${session.user.id}`);
+
+        // If we're on a single post view, go home
+        if (router.pathname.includes("/post/")) {
+          router.push("/");
+        }
+      } else {
+        console.error("Failed to delete post");
+      }
+    } catch (error) {
+      console.error("Error deleting post:", error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   // Format hashtags in caption
-  const formattedCaption = post.caption.split(" ").map((word, index) => {
+  const formattedCaption = localCaption.split(" ").map((word, index) => {
     if (word.startsWith("#")) {
       return (
         <Link
@@ -305,159 +427,481 @@ export function PostModal({
   });
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogOverlay className="bg-black/80 backdrop-blur-sm" />
-      <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-[80vw] md:max-w-[90vw] lg:max-w-[80vw] xl:max-w-6xl p-0 bg-zinc-900 border border-zinc-800 overflow-hidden rounded-lg max-h-[90vh]">
-        <VisuallyHidden>
-          <DialogTitle>Post by {formatUsername(post.username)}</DialogTitle>
-          <DialogDescription>
-            Photo post with image and comments
-          </DialogDescription>
-        </VisuallyHidden>
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogOverlay className="bg-black/80 backdrop-blur-sm" />
+        <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-[80vw] md:max-w-[90vw] lg:max-w-[80vw] xl:max-w-6xl p-0 bg-zinc-900 border border-zinc-800 overflow-hidden rounded-lg max-h-[90vh]">
+          <VisuallyHidden>
+            <DialogTitle>Post by {formatUsername(post.username)}</DialogTitle>
+            <DialogDescription>
+              Photo post with image and comments
+            </DialogDescription>
+          </VisuallyHidden>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute right-2 top-2 z-20 h-8 w-8 rounded-full bg-black/50 text-white hover:bg-black/70"
-          onClick={onClose}
-        >
-          <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
-        </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-2 top-2 z-20 h-8 w-8 rounded-full bg-black/50 text-white hover:bg-black/70"
+            onClick={onClose}
+          >
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </Button>
 
-        {/* Desktop layout */}
-        {!isMobile && (
-          <div className="grid grid-cols-1 md:grid-cols-2 h-[80vh] max-h-[80vh]">
-            {/* Left side - Image */}
-            <div className="relative bg-black flex items-center justify-center h-full">
-              <Image
-                src={post.image || "/placeholder.svg"}
-                alt={`Post by ${post.username}`}
-                fill
-                className="object-contain"
-              />
-            </div>
-
-            {/* Right side - Comments and interactions */}
-            <div className="flex flex-col h-full max-h-[80vh]">
-              {/* Post header */}
-              <div className="flex items-center justify-between p-4 border-b border-zinc-800">
-                <div className="flex items-center gap-3">
-                  <Avatar className="w-8 h-8 border border-zinc-700">
-                    <AvatarImage src={post.userImage} alt={post.username} />
-                    <AvatarFallback>
-                      {getAvatarFallback(post.username)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col">
-                    <Link
-                      href={`/profile/${post.username}`}
-                      className="text-sm font-medium hover:underline"
-                      onClick={e => e.stopPropagation()}
-                    >
-                      {formatUsername(post.username)}
-                    </Link>
-                  </div>
-                </div>
+          {/* Desktop layout */}
+          {!isMobile && (
+            <div className="grid grid-cols-1 md:grid-cols-2 h-[80vh] max-h-[80vh]">
+              {/* Left side - Image */}
+              <div className="relative bg-black flex items-center justify-center h-full">
+                <Image
+                  src={post.image || "/placeholder.svg"}
+                  alt={`Post by ${post.username}`}
+                  fill
+                  className="object-contain"
+                />
               </div>
 
-              {/* Comments section - Make sure it's scrollable */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {/* Original post caption */}
-                <div className="flex gap-3">
-                  <Avatar className="w-8 h-8 border border-zinc-700 flex-shrink-0">
-                    <AvatarImage src={post.userImage} alt={post.username} />
-                    <AvatarFallback>
-                      {getAvatarFallback(post.username)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="text-sm text-white">
+              {/* Right side - Comments and interactions */}
+              <div className="flex flex-col h-full max-h-[80vh]">
+                {/* Post header */}
+                <div className="flex items-center justify-between p-4 border-b border-zinc-800">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="w-8 h-8 border border-zinc-700">
+                      <AvatarImage src={post.userImage} alt={post.username} />
+                      <AvatarFallback>
+                        {getAvatarFallback(post.username)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col">
                       <Link
                         href={`/profile/${post.username}`}
-                        className="font-semibold mr-1 hover:underline text-white"
+                        className="text-sm font-medium hover:underline"
                         onClick={e => e.stopPropagation()}
                       >
                         {formatUsername(post.username)}
                       </Link>
-                      <span className="text-white">{formattedCaption}</span>
-                    </p>
-                    <p className="text-xs text-zinc-500 mt-1">{post.timeAgo}</p>
-                  </div>
-                </div>
-
-                {/* Comments */}
-                {localComments.map((comment, index) => (
-                  <div key={index} className="flex gap-3">
-                    <Avatar className="w-8 h-8 border border-zinc-700 flex-shrink-0">
-                      <AvatarImage
-                        src={
-                          comment.userImage ||
-                          getUserImage(undefined, comment.username)
-                        }
-                        alt={comment.username}
-                      />
-                      <AvatarFallback>
-                        {getAvatarFallback(comment.username)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="text-sm text-white">
-                        <Link
-                          href={`/profile/${comment.username}`}
-                          className="font-semibold mr-1 hover:underline text-white"
-                          onClick={e => e.stopPropagation()}
-                        >
-                          {formatUsername(comment.username)}
-                        </Link>
-                        <span className="text-white">{comment.comment}</span>
-                      </p>
-                      <p className="text-xs text-zinc-500 mt-1">
-                        {comment.timeAgo || "recently"}
-                      </p>
                     </div>
                   </div>
-                ))}
+
+                  {/* Post options (only for post owner) */}
+                  {isOwner && isLoggedIn && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-full"
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                          <span className="sr-only">Options</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setIsEditMode(true)}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit caption
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setIsDeleteDialogOpen(true)}
+                          className="text-red-500 focus:text-red-500"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete post
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
+
+                {/* Comments section - Make sure it's scrollable */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                  {/* Original post caption */}
+                  <div className="flex gap-3">
+                    <Avatar className="w-8 h-8 border border-zinc-700 flex-shrink-0">
+                      <AvatarImage src={post.userImage} alt={post.username} />
+                      <AvatarFallback>
+                        {getAvatarFallback(post.username)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      {isEditMode ? (
+                        <div className="space-y-2">
+                          <Textarea
+                            value={editCaption}
+                            onChange={e => setEditCaption(e.target.value)}
+                            placeholder="Edit your caption..."
+                            className="text-sm bg-zinc-800 border-zinc-700 resize-none"
+                            rows={3}
+                          />
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setIsEditMode(false);
+                                setEditCaption(localCaption);
+                              }}
+                              disabled={isEditingCaption}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={handleEditCaption}
+                              disabled={!editCaption.trim() || isEditingCaption}
+                            >
+                              {isEditingCaption ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                              ) : (
+                                "Save"
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-sm text-white">
+                            <Link
+                              href={`/profile/${post.username}`}
+                              className="font-semibold mr-1 hover:underline text-white"
+                              onClick={e => e.stopPropagation()}
+                            >
+                              {formatUsername(post.username)}
+                            </Link>
+                            <span className="text-white">
+                              {formattedCaption}
+                            </span>
+                          </p>
+                          <p className="text-xs text-zinc-500 mt-1">
+                            {post.timeAgo}
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Comments */}
+                  {localComments.map((comment, index) => (
+                    <div key={index} className="flex gap-3">
+                      <Avatar className="w-8 h-8 border border-zinc-700 flex-shrink-0">
+                        <AvatarImage
+                          src={
+                            comment.userImage ||
+                            getUserImage(undefined, comment.username)
+                          }
+                          alt={comment.username}
+                        />
+                        <AvatarFallback>
+                          {getAvatarFallback(comment.username)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="text-sm text-white">
+                          <Link
+                            href={`/profile/${comment.username}`}
+                            className="font-semibold mr-1 hover:underline text-white"
+                            onClick={e => e.stopPropagation()}
+                          >
+                            {formatUsername(comment.username)}
+                          </Link>
+                          <span className="text-white">{comment.comment}</span>
+                        </p>
+                        <p className="text-xs text-zinc-500 mt-1">
+                          {comment.timeAgo || "recently"}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Post actions - Fixed at bottom */}
+                <div className="border-t border-zinc-800 p-4 bg-zinc-900">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-4">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9 rounded-full"
+                        onClick={handleLike}
+                        disabled={!isLoggedIn}
+                      >
+                        <Heart
+                          className={`h-6 w-6 ${
+                            isLiked ? "fill-red-500 text-red-500" : ""
+                          }`}
+                        />
+                        <span className="sr-only">Like</span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9 rounded-full"
+                        onClick={() => commentInputRef.current?.focus()}
+                      >
+                        <MessageCircle className="h-6 w-6" />
+                        <span className="sr-only">Comment</span>
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Likes */}
+                  <div className="mb-3">
+                    <p className="text-sm font-semibold">
+                      {likesCount.toLocaleString()} likes
+                    </p>
+                  </div>
+
+                  {/* Add comment */}
+                  {isLoggedIn ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        ref={commentInputRef}
+                        type="text"
+                        placeholder="Add a comment..."
+                        value={commentText}
+                        onChange={e => setCommentText(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            handleComment();
+                          }
+                        }}
+                        className="bg-transparent border-none text-sm h-9 p-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-white placeholder:text-zinc-500"
+                        disabled={isSubmittingComment}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleComment}
+                        disabled={!commentText.trim() || isSubmittingComment}
+                        className={`text-blue-400 hover:text-blue-300 ${
+                          !commentText.trim() || isSubmittingComment
+                            ? "opacity-50"
+                            : ""
+                        }`}
+                      >
+                        {isSubmittingComment ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                        ) : (
+                          "Post"
+                        )}
+                      </Button>
+                    </div>
+                  ) : (
+                    <div>
+                      <Link
+                        href="/login"
+                        className="text-sm text-blue-400 hover:text-blue-300"
+                      >
+                        Log in
+                      </Link>
+                      <span className="text-sm text-zinc-500">
+                        {" "}
+                        to like or comment.
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Mobile layout */}
+          {isMobile && (
+            <div className="flex flex-col h-[80vh] max-h-[80vh]">
+              {/* Username bar */}
+              <div className="flex items-center justify-between p-3 border-b border-zinc-800 bg-zinc-900 z-10">
+                <div className="flex items-center">
+                  <Avatar className="w-7 h-7 border border-zinc-700 mr-2">
+                    <AvatarImage src={post.userImage} alt={post.username} />
+                    <AvatarFallback>
+                      {getAvatarFallback(post.username)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <Link
+                    href={`/profile/${post.username}`}
+                    className="text-sm font-medium hover:underline text-white"
+                    onClick={e => e.stopPropagation()}
+                  >
+                    {formatUsername(post.username)}
+                  </Link>
+                </div>
+
+                {/* Post options dropdown (only for post owner) - Mobile */}
+                {isOwner && isLoggedIn && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-full"
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                        <span className="sr-only">Options</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setIsEditMode(true)}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit caption
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setIsDeleteDialogOpen(true)}
+                        className="text-red-500 focus:text-red-500"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete post
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
               </div>
 
-              {/* Post actions - Fixed at bottom */}
-              <div className="border-t border-zinc-800 p-4 bg-zinc-900">
+              {/* Content area with scrolling */}
+              <div className="flex flex-col overflow-y-auto flex-1">
+                {/* Image container */}
+                <div
+                  className="relative bg-black flex items-center justify-center"
+                  style={{ minHeight: "200px", height: "40vh" }}
+                >
+                  <Image
+                    src={post.image || "/placeholder.svg"}
+                    alt={`Post by ${post.username}`}
+                    fill
+                    className="object-contain"
+                  />
+                </div>
+
+                {/* Caption and comments */}
+                <div className="p-3 space-y-4 flex-1 overflow-y-auto">
+                  {/* Caption */}
+                  <div className="flex gap-3">
+                    <Avatar className="w-8 h-8 border border-zinc-700 flex-shrink-0">
+                      <AvatarImage src={post.userImage} alt={post.username} />
+                      <AvatarFallback>
+                        {getAvatarFallback(post.username)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      {isEditMode ? (
+                        <div className="space-y-2">
+                          <Textarea
+                            value={editCaption}
+                            onChange={e => setEditCaption(e.target.value)}
+                            placeholder="Edit your caption..."
+                            className="text-xs bg-zinc-800 border-zinc-700 resize-none"
+                            rows={3}
+                          />
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setIsEditMode(false);
+                                setEditCaption(localCaption);
+                              }}
+                              disabled={isEditingCaption}
+                              className="text-xs h-8"
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={handleEditCaption}
+                              disabled={!editCaption.trim() || isEditingCaption}
+                              className="text-xs h-8"
+                            >
+                              {isEditingCaption ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                              ) : (
+                                "Save"
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-sm text-white">
+                            <Link
+                              href={`/profile/${post.username}`}
+                              className="font-semibold mr-1 hover:underline text-white"
+                              onClick={e => e.stopPropagation()}
+                            >
+                              {formatUsername(post.username)}
+                            </Link>
+                            <span className="text-white">
+                              {formattedCaption}
+                            </span>
+                          </p>
+                          <p className="text-xs text-zinc-500 mt-1">
+                            {post.timeAgo}
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Comments */}
+                  {localComments.map((comment, index) => (
+                    <div key={index} className="flex gap-3">
+                      <Avatar className="w-8 h-8 border border-zinc-700 flex-shrink-0">
+                        <AvatarImage
+                          src={
+                            comment.userImage ||
+                            getUserImage(undefined, comment.username)
+                          }
+                          alt={comment.username}
+                        />
+                        <AvatarFallback>
+                          {getAvatarFallback(comment.username)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="text-sm text-white">
+                          <Link
+                            href={`/profile/${comment.username}`}
+                            className="font-semibold mr-1 hover:underline text-white"
+                            onClick={e => e.stopPropagation()}
+                          >
+                            {formatUsername(comment.username)}
+                          </Link>
+                          <span className="text-white">{comment.comment}</span>
+                        </p>
+                        <p className="text-xs text-zinc-500 mt-1">
+                          {comment.timeAgo || "recently"}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Action bar - Fixed at bottom */}
+              <div className="p-3 border-t border-zinc-800 bg-zinc-900 z-10">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-4">
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-9 w-9 rounded-full"
+                      className="h-8 w-8 rounded-full"
                       onClick={handleLike}
                       disabled={!isLoggedIn}
                     >
                       <Heart
-                        className={`h-6 w-6 ${
+                        className={`h-5 w-5 ${
                           isLiked ? "fill-red-500 text-red-500" : ""
                         }`}
                       />
                       <span className="sr-only">Like</span>
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-9 w-9 rounded-full"
-                      onClick={() => commentInputRef.current?.focus()}
-                    >
-                      <MessageCircle className="h-6 w-6" />
-                      <span className="sr-only">Comment</span>
-                    </Button>
+                    <MessageCircle className="h-5 w-5" />
                   </div>
-                </div>
-
-                {/* Likes */}
-                <div className="mb-3">
-                  <p className="text-sm font-semibold">
+                  <p className="text-xs font-semibold">
                     {likesCount.toLocaleString()} likes
                   </p>
                 </div>
 
-                {/* Add comment */}
+                {/* Comment input */}
                 {isLoggedIn ? (
                   <div className="flex items-center gap-2">
                     <Input
@@ -509,183 +953,35 @@ export function PostModal({
                 )}
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </DialogContent>
+      </Dialog>
 
-        {/* Mobile layout */}
-        {isMobile && (
-          <div className="flex flex-col h-[80vh] max-h-[80vh]">
-            {/* Username bar */}
-            <div className="flex items-center p-3 border-b border-zinc-800 bg-zinc-900 z-10">
-              <Avatar className="w-7 h-7 border border-zinc-700 mr-2">
-                <AvatarImage src={post.userImage} alt={post.username} />
-                <AvatarFallback>
-                  {getAvatarFallback(post.username)}
-                </AvatarFallback>
-              </Avatar>
-              <Link
-                href={`/profile/${post.username}`}
-                className="text-sm font-medium hover:underline text-white"
-                onClick={e => e.stopPropagation()}
-              >
-                {formatUsername(post.username)}
-              </Link>
-            </div>
-
-            {/* Content area with scrolling */}
-            <div className="flex flex-col overflow-y-auto flex-1">
-              {/* Image container */}
-              <div
-                className="relative bg-black flex items-center justify-center"
-                style={{ minHeight: "200px", height: "40vh" }}
-              >
-                <Image
-                  src={post.image || "/placeholder.svg"}
-                  alt={`Post by ${post.username}`}
-                  fill
-                  className="object-contain"
-                />
-              </div>
-
-              {/* Caption and comments */}
-              <div className="p-3 space-y-4 flex-1 overflow-y-auto">
-                {/* Caption */}
-                <div className="flex gap-3">
-                  <Avatar className="w-8 h-8 border border-zinc-700 flex-shrink-0">
-                    <AvatarImage src={post.userImage} alt={post.username} />
-                    <AvatarFallback>
-                      {getAvatarFallback(post.username)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="text-sm text-white">
-                      <Link
-                        href={`/profile/${post.username}`}
-                        className="font-semibold mr-1 hover:underline text-white"
-                        onClick={e => e.stopPropagation()}
-                      >
-                        {formatUsername(post.username)}
-                      </Link>
-                      <span className="text-white">{formattedCaption}</span>
-                    </p>
-                    <p className="text-xs text-zinc-500 mt-1">{post.timeAgo}</p>
-                  </div>
-                </div>
-
-                {/* Comments */}
-                {localComments.map((comment, index) => (
-                  <div key={index} className="flex gap-3">
-                    <Avatar className="w-8 h-8 border border-zinc-700 flex-shrink-0">
-                      <AvatarImage
-                        src={
-                          comment.userImage ||
-                          getUserImage(undefined, comment.username)
-                        }
-                        alt={comment.username}
-                      />
-                      <AvatarFallback>
-                        {getAvatarFallback(comment.username)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="text-sm text-white">
-                        <Link
-                          href={`/profile/${comment.username}`}
-                          className="font-semibold mr-1 hover:underline text-white"
-                          onClick={e => e.stopPropagation()}
-                        >
-                          {formatUsername(comment.username)}
-                        </Link>
-                        <span className="text-white">{comment.comment}</span>
-                      </p>
-                      <p className="text-xs text-zinc-500 mt-1">
-                        {comment.timeAgo || "recently"}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Action bar - Fixed at bottom */}
-            <div className="p-3 border-t border-zinc-800 bg-zinc-900 z-10">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-4">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-full"
-                    onClick={handleLike}
-                    disabled={!isLoggedIn}
-                  >
-                    <Heart
-                      className={`h-5 w-5 ${
-                        isLiked ? "fill-red-500 text-red-500" : ""
-                      }`}
-                    />
-                    <span className="sr-only">Like</span>
-                  </Button>
-                  <MessageCircle className="h-5 w-5" />
-                </div>
-                <p className="text-xs font-semibold">
-                  {likesCount.toLocaleString()} likes
-                </p>
-              </div>
-
-              {/* Comment input */}
-              {isLoggedIn ? (
-                <div className="flex items-center gap-2">
-                  <Input
-                    ref={commentInputRef}
-                    type="text"
-                    placeholder="Add a comment..."
-                    value={commentText}
-                    onChange={e => setCommentText(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        handleComment();
-                      }
-                    }}
-                    className="bg-transparent border-none text-sm h-9 p-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-white placeholder:text-zinc-500"
-                    disabled={isSubmittingComment}
-                  />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleComment}
-                    disabled={!commentText.trim() || isSubmittingComment}
-                    className={`text-blue-400 hover:text-blue-300 ${
-                      !commentText.trim() || isSubmittingComment
-                        ? "opacity-50"
-                        : ""
-                    }`}
-                  >
-                    {isSubmittingComment ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                    ) : (
-                      "Post"
-                    )}
-                  </Button>
-                </div>
-              ) : (
-                <div>
-                  <Link
-                    href="/login"
-                    className="text-sm text-blue-400 hover:text-blue-300"
-                  >
-                    Log in
-                  </Link>
-                  <span className="text-sm text-zinc-500">
-                    {" "}
-                    to like or comment.
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
+      {/* Delete confirmation dialog */}
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete post</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this post? This action cannot be
+              undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeletePost}
+              disabled={isDeleting}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

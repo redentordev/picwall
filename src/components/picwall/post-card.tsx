@@ -6,10 +6,29 @@ import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Heart, MessageCircle } from "lucide-react";
+import { Heart, MessageCircle, MoreVertical, Edit, Trash2 } from "lucide-react";
 import { PostModal } from "./post-modal";
 import { useSession } from "@/lib/auth-client";
 import { formatTimeAgo } from "@/lib/date-utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { mutate } from "swr";
+import { useRouter } from "next/router";
 
 interface Comment {
   username: string;
@@ -29,6 +48,26 @@ interface PostCardProps {
   comments: Comment[];
   isLoggedIn: boolean;
   liked?: boolean;
+  userId: string;
+}
+
+interface PostModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  post: {
+    id: string;
+    username: string;
+    userImage: string;
+    timeAgo: string;
+    image: string;
+    likes: number;
+    caption: string;
+    comments: Comment[];
+    liked?: boolean;
+    userId?: string;
+  };
+  isLoggedIn: boolean;
+  onPostUpdate?: () => void;
 }
 
 // Use email as username without formatting
@@ -62,6 +101,7 @@ export function PostCard({
   comments,
   isLoggedIn,
   liked = false,
+  userId,
 }: PostCardProps) {
   const [isLiked, setIsLiked] = useState(liked);
   const [likesCount, setLikesCount] = useState(likes);
@@ -74,6 +114,21 @@ export function PostCard({
   const [localComments, setLocalComments] = useState<Comment[]>(comments);
   const { data: session } = useSession();
   const commentInputRef = useRef<HTMLInputElement>(null);
+  const [localCaption, setLocalCaption] = useState(caption);
+
+  // Edit and delete states
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editCaption, setEditCaption] = useState(caption);
+  const [isEditingCaption, setIsEditingCaption] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Check if current user is the post owner
+  const isOwner = session?.user?.id === userId;
+  console.log(isOwner);
+  console.log(userId);
+
+  const router = useRouter();
 
   // Check if we're on a mobile device
   useState(() => {
@@ -221,6 +276,86 @@ export function PostCard({
     }
   };
 
+  // Handle edit caption
+  const handleEditCaption = async () => {
+    if (!isLoggedIn || !session?.user?.id || !editCaption.trim()) {
+      return;
+    }
+
+    setIsEditingCaption(true);
+
+    try {
+      const response = await fetch(`/api/post?id=${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id,
+          userId: session.user.id,
+          caption: editCaption,
+        }),
+      });
+
+      if (response.ok) {
+        // Update local state
+        setLocalCaption(editCaption);
+        setIsEditMode(false);
+
+        // Revalidate data cache
+        mutate(`/api/post?id=${id}`);
+      } else {
+        console.error("Failed to update caption");
+      }
+    } catch (error) {
+      console.error("Error updating caption:", error);
+    } finally {
+      setIsEditingCaption(false);
+    }
+  };
+
+  // Handle delete post
+  const handleDeletePost = async () => {
+    if (!isLoggedIn || !session?.user?.id) {
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      const response = await fetch(`/api/post?id=${id}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: session.user.id,
+        }),
+      });
+
+      if (response.ok) {
+        // Close any open modal
+        setIsModalOpen(false);
+        setIsDeleteDialogOpen(false);
+
+        // Revalidate data cache for the user's posts and feed
+        mutate("/api/posts");
+        mutate(`/api/posts?userId=${session.user.id}`);
+
+        // If we're on a profile page, stay there but if on single post view, go home
+        if (router.pathname.includes("/post/")) {
+          router.push("/");
+        }
+      } else {
+        console.error("Failed to delete post");
+      }
+    } catch (error) {
+      console.error("Error deleting post:", error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const formattedCaption = caption.split(" ").map((word, index) => {
     if (word.startsWith("#")) {
       return (
@@ -278,6 +413,35 @@ export function PostCard({
               <span className="text-xs text-zinc-500">{timeAgo}</span>
             </div>
           </div>
+
+          {/* Post options dropdown (only for post owner) */}
+          {isOwner && isLoggedIn && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full"
+                >
+                  <MoreVertical className="h-4 w-4" />
+                  <span className="sr-only">Options</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setIsEditMode(true)}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit caption
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                  className="text-red-500 focus:text-red-500"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete post
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
 
         {/* Post image - Added click handler to open modal */}
@@ -345,21 +509,78 @@ export function PostCard({
             </p>
           </div>
 
-          {/* Caption */}
+          {/* Caption - Show edit form if in edit mode */}
           <div className="mb-2">
-            <p
-              className={`${
-                isMobile ? "text-xs leading-normal" : "text-sm"
-              } text-white`}
-            >
-              <Link
-                href={isLoggedIn ? `/profile/${username}` : "/login"}
-                className="font-semibold mr-1 hover:underline text-white"
+            {isEditMode ? (
+              <div className="space-y-2">
+                <Textarea
+                  value={editCaption}
+                  onChange={e => setEditCaption(e.target.value)}
+                  placeholder="Edit your caption..."
+                  className={`${
+                    isMobile ? "text-xs" : "text-sm"
+                  } bg-zinc-800 border-zinc-700 resize-none`}
+                  rows={3}
+                />
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setIsEditMode(false);
+                      setEditCaption(localCaption);
+                    }}
+                    disabled={isEditingCaption}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleEditCaption}
+                    disabled={!editCaption.trim() || isEditingCaption}
+                  >
+                    {isEditingCaption ? "Saving..." : "Save"}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <p
+                className={`${
+                  isMobile ? "text-xs leading-normal" : "text-sm"
+                } text-white`}
               >
-                {formatUsername(username)}
-              </Link>
-              <span className="text-white">{formattedCaption}</span>
-            </p>
+                <Link
+                  href={isLoggedIn ? `/profile/${username}` : "/login"}
+                  className="font-semibold mr-1 hover:underline text-white"
+                >
+                  {formatUsername(username)}
+                </Link>
+                <span className="text-white">
+                  {localCaption.split(" ").map((word, index) => {
+                    if (word.startsWith("#")) {
+                      return (
+                        <>
+                          {isLoggedIn ? (
+                            <Link
+                              key={index}
+                              href={`/explore/tags/${word.substring(1)}`}
+                              className="text-blue-400 hover:underline"
+                            >
+                              {word}{" "}
+                            </Link>
+                          ) : (
+                            <span className="text-blue-400 cursor-default">
+                              {word}{" "}
+                            </span>
+                          )}
+                        </>
+                      );
+                    }
+                    return word + " ";
+                  })}
+                </span>
+              </p>
+            )}
           </div>
 
           {/* Comments */}
@@ -479,7 +700,7 @@ export function PostCard({
         </div>
       </div>
 
-      {/* Post Modal */}
+      {/* Post Modal - Update props to include edit/delete functionality */}
       <PostModal
         isOpen={isModalOpen}
         onClose={closeModal}
@@ -490,12 +711,44 @@ export function PostCard({
           timeAgo,
           image: image || "/placeholder.svg",
           likes: likesCount,
-          caption,
+          caption: localCaption,
           comments: localComments,
           liked: isLiked,
+          userId,
         }}
         isLoggedIn={isLoggedIn}
+        onPostUpdate={() => {
+          // Refresh data
+          mutate(`/api/post?id=${id}`);
+          mutate("/api/posts");
+        }}
       />
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete post</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this post? This action cannot be
+              undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeletePost}
+              disabled={isDeleting}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
