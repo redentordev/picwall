@@ -366,6 +366,13 @@ export function PostModal({
         setLocalCaption(editCaption);
         setIsEditMode(false);
 
+        // Call the parent component's update function with the updated post
+        if (onPostUpdate) {
+          onPostUpdate("edit", post.id, {
+            caption: editCaption,
+          });
+        }
+
         // Revalidate data
         revalidateData();
       } else {
@@ -495,16 +502,6 @@ export function PostModal({
               Photo post with image and comments
             </DialogDescription>
           </VisuallyHidden>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute right-2 top-2 z-20 h-8 w-8 rounded-full bg-black/50 text-white hover:bg-black/70"
-            onClick={onClose}
-          >
-            <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
-          </Button>
 
           {/* Desktop layout */}
           {!isMobile && (
@@ -769,8 +766,8 @@ export function PostModal({
             <div className="flex flex-col h-[80vh] max-h-[80vh]">
               {/* Username bar */}
               <div className="flex items-center justify-between p-3 border-b border-zinc-800 bg-zinc-900 z-10">
-                <div className="flex items-center">
-                  <Avatar className="w-7 h-7 border border-zinc-700 mr-2">
+                <div className="flex items-center max-w-[75%]">
+                  <Avatar className="w-7 h-7 border border-zinc-700 mr-2 flex-shrink-0">
                     <AvatarImage src={post.userImage} alt={post.username} />
                     <AvatarFallback>
                       {getAvatarFallback(post.username)}
@@ -778,7 +775,7 @@ export function PostModal({
                   </Avatar>
                   <Link
                     href={`/profile/${post.username}`}
-                    className="text-sm font-medium hover:underline text-white"
+                    className="text-sm font-medium hover:underline text-white truncate"
                     onClick={e => e.stopPropagation()}
                   >
                     {formatUsername(post.username)}
@@ -786,33 +783,35 @@ export function PostModal({
                 </div>
 
                 {/* Post options dropdown (only for post owner) - Mobile */}
-                {isOwner && isLoggedIn && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 rounded-full"
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                        <span className="sr-only">Options</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => setIsEditMode(true)}>
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit caption
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => setIsDeleteDialogOpen(true)}
-                        className="text-red-500 focus:text-red-500"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete post
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
+                <div className="flex-shrink-0">
+                  {isOwner && isLoggedIn && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-full"
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                          <span className="sr-only">Options</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setIsEditMode(true)}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit caption
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setIsDeleteDialogOpen(true)}
+                          className="text-red-500 focus:text-red-500"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete post
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
               </div>
 
               {/* Content area with scrolling */}
@@ -1020,7 +1019,7 @@ export function PostModal({
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="w-[95%] max-w-md sm:max-w-lg">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete post</AlertDialogTitle>
             <AlertDialogDescription>
@@ -1028,12 +1027,14 @@ export function PostModal({
               undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-row sm:gap-0">
+            <AlertDialogCancel disabled={isDeleting} className="sm:mt-0">
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeletePost}
               disabled={isDeleting}
-              className="bg-red-500 hover:bg-red-600"
+              className="bg-red-500 hover:bg-red-600 text-white"
             >
               {isDeleting ? "Deleting..." : "Delete"}
             </AlertDialogAction>

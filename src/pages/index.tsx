@@ -158,6 +158,7 @@ export default function Home() {
   const [isMobile, setIsMobile] = useState(false);
   const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
   const [deletedPostIds, setDeletedPostIds] = useState<Set<string>>(new Set());
+  const [editedPosts, setEditedPosts] = useState<Record<string, any>>({});
 
   useEffect(() => {
     const checkIfMobile = () => {
@@ -329,15 +330,22 @@ export default function Home() {
   }, [mutate]);
 
   const handlePostUpdated = useCallback(
-    (postId?: string) => {
-      // Handle post deletion
-      if (postId) {
+    (action: string = "update", postId?: string, updatedPost?: any) => {
+      // Handle different update actions
+      if (action === "delete" && postId) {
         // Track deleted post IDs
         setDeletedPostIds(prevIds => {
           const newIds = new Set(prevIds);
           newIds.add(postId);
           return newIds;
         });
+      }
+      // Handle edit with optimistic UI update
+      else if (action === "edit" && postId && updatedPost) {
+        setEditedPosts(prev => ({
+          ...prev,
+          [postId]: updatedPost,
+        }));
       }
 
       // Revalidate the data
@@ -347,10 +355,14 @@ export default function Home() {
     [mutate]
   );
 
-  // Filter out deleted posts from the displayed posts
+  // Filter out deleted posts and apply edits to the displayed posts
   const filteredPosts = useMemo(() => {
-    return posts.filter(post => !deletedPostIds.has(post.id));
-  }, [posts, deletedPostIds]);
+    return posts
+      .filter(post => !deletedPostIds.has(post.id))
+      .map(post =>
+        editedPosts[post.id] ? { ...post, ...editedPosts[post.id] } : post
+      );
+  }, [posts, deletedPostIds, editedPosts]);
 
   return (
     <>
@@ -439,7 +451,9 @@ export default function Home() {
                   comments={post.comments}
                   isLoggedIn={isLoggedIn}
                   liked={post.liked}
-                  onPostUpdate={() => handlePostUpdated(post.id)}
+                  onPostUpdate={(action, postId, updatedPost) =>
+                    handlePostUpdated(action, postId, updatedPost)
+                  }
                 />
               ))}
 

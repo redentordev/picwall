@@ -783,7 +783,7 @@ export function PostCard({
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="w-[95%] max-w-md sm:max-w-lg">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete post</AlertDialogTitle>
             <AlertDialogDescription>
@@ -791,12 +791,14 @@ export function PostCard({
               undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-row sm:gap-0">
+            <AlertDialogCancel disabled={isDeleting} className="sm:mt-0">
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeletePost}
               disabled={isDeleting}
-              className="bg-red-500 hover:bg-red-600"
+              className="bg-red-500 hover:bg-red-600 text-white"
             >
               {isDeleting ? "Deleting..." : "Delete"}
             </AlertDialogAction>
