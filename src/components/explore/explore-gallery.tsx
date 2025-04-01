@@ -212,8 +212,8 @@ export function ExploreGallery({
         typeof postData.post.likes === "number"
           ? postData.post.likes
           : Array.isArray(postData.post.likes)
-          ? postData.post.likes.length
-          : 0,
+            ? postData.post.likes.length
+            : 0,
       caption: postData.post.caption || "",
       comments: Array.isArray(postData.post.comments)
         ? postData.post.comments.map((comment: any) => {
@@ -347,8 +347,8 @@ export function ExploreGallery({
                           {typeof post.likes === "number"
                             ? post.likes
                             : Array.isArray(post.likes)
-                            ? post.likes.length
-                            : 0}
+                              ? post.likes.length
+                              : 0}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -357,8 +357,8 @@ export function ExploreGallery({
                           {typeof post.comments === "number"
                             ? post.comments
                             : Array.isArray(post.comments)
-                            ? post.comments.length
-                            : 0}
+                              ? post.comments.length
+                              : 0}
                         </span>
                       </div>
                     </div>
