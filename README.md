@@ -135,6 +135,101 @@ yarn dev
 - **Storage**: AWS S3 for image uploads
 - **Deployment**: Easily deployable on Vercel
 
+## API Documentation
+
+### Authentication Endpoints
+
+- **POST /api/auth/\[...all\]**
+  - Handles all authentication operations via better-auth
+  - Supports login, registration, OAuth callbacks, session management
+  - Returns JWT token for authenticated requests
+
+### User Endpoints
+
+- **GET /api/user**
+
+  - **Query Parameters**:
+    - `id`: User ID (string)
+    - `email`: User email (string)
+  - **Response**: User object with profile information
+  - **Authentication**: Not required
+
+- **PUT /api/user**
+
+  - **Body**:
+    - `id`: User ID (string, required)
+    - `name`: Updated name (string, optional)
+    - `bio`: Updated bio (string, optional)
+    - `image`: Updated profile image URL (string, optional)
+  - **Response**: Updated user object
+  - **Authentication**: Required (can only update own profile)
+
+- **GET /api/users**
+  - **Query Parameters**:
+    - `ids`: Comma-separated list of user IDs
+  - **Response**: Array of user objects
+  - **Authentication**: Not required
+
+### Post Endpoints
+
+- **GET /api/posts**
+
+  - **Query Parameters**:
+    - `limit`: Number of posts to return (default: 50)
+    - `skip`: Number of posts to skip for pagination (default: 0)
+    - `userId`: Filter posts by user ID (optional)
+    - `sort`: Sort order, either "latest" or "popular" (default: "latest")
+  - **Response**: Array of posts with pagination info
+  - **Authentication**: Not required
+
+- **GET /api/post**
+
+  - **Query Parameters**:
+    - `id`: Post ID (optional)
+    - `userId`: User ID to filter posts by (optional)
+    - `limit`: Number of posts to return (default: 10)
+    - `skip`: Number of posts to skip for pagination (default: 0)
+  - **Response**: Single post or array of posts
+  - **Authentication**: Not required
+
+- **POST /api/post**
+
+  - **Body**:
+    - `userId`: ID of the post creator (string, required)
+    - `image`: Image URL (string, required)
+    - `caption`: Post caption (string, optional)
+  - **Response**: Created post object
+  - **Authentication**: Required
+
+- **PUT /api/post**
+
+  - **Query Parameters**:
+    - `id`: Post ID to update
+  - **Body**:
+    - `caption`: Updated caption (optional)
+    - `userId`: User ID making the request (required)
+    - `action`: Action to perform: "like", "unlike", or "comment" (optional)
+    - `comment`: Comment text (required if action is "comment")
+  - **Response**: Updated post object
+  - **Authentication**: Required
+
+- **DELETE /api/post**
+  - **Query Parameters**:
+    - `id`: Post ID to delete
+  - **Body**:
+    - `userId`: User ID making the request (required)
+  - **Response**: Success message
+  - **Authentication**: Required (can only delete own posts)
+
+### Upload Endpoints
+
+- **POST /api/upload**
+  - **Body**:
+    - `image`: Base64 encoded image data
+  - **Response**: Uploaded image URL
+  - **Authentication**: Required
+  - **Limits**: 10MB maximum file size
+
 ### Building for Production
 
 ```bash
