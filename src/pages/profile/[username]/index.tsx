@@ -1,12 +1,12 @@
 import type { GetServerSideProps, NextPage } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useState } from "react";
-import useSWR from "swr";
+import { useState, useCallback, useMemo } from "react";
+import useSWR, { mutate as globalMutate } from "swr";
 import { ProfileHeader } from "@/components/profile/profile-header";
 import { ProfileGallery } from "@/components/profile/profile-gallery";
 import { Sidebar } from "@/components/picwall/sidebar";
-import { User } from "@/types";
+import { User, Post } from "@/types";
 import EditProfileModal from "@/components/profile/edit-profile-modal";
 
 // SWR fetcher function
@@ -28,6 +28,8 @@ const ProfilePage: NextPage<ProfilePageProps> = ({
   const router = useRouter();
   const { username } = router.query;
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deletedPostIds, setDeletedPostIds] = useState<Set<string>>(new Set());
+  const [editedPosts, setEditedPosts] = useState<Record<string, Post>>({});
 
   // Use SWR for user data with the fallback from SSR
   const {
@@ -46,7 +48,11 @@ const ProfilePage: NextPage<ProfilePageProps> = ({
   );
 
   // Use SWR for posts data
-  const { data: postsData, error: postsError } = useSWR(
+  const {
+    data: postsData,
+    error: postsError,
+    mutate: mutatePosts,
+  } = useSWR(
     userData?.user?.id ? `/api/post?userId=${userData.user.id}` : null,
     fetcher
   );
@@ -56,6 +62,44 @@ const ProfilePage: NextPage<ProfilePageProps> = ({
   const isLoadingPosts = !postsData && !postsError && !!user;
   const isError = userError || postsError || !!errorMessage;
   const errorMsg = userError?.message || postsError?.message || errorMessage;
+
+  // Create processed posts with reactive UI updates
+  const processedPosts = useMemo(() => {
+    if (!posts) return [];
+
+    // Filter out deleted posts
+    let result = posts.filter((post: Post) => !deletedPostIds.has(post.id));
+
+    // Apply any edits
+    result = result.map((post: Post) =>
+      editedPosts[post.id] ? { ...post, ...editedPosts[post.id] } : post
+    );
+
+    return result;
+  }, [posts, deletedPostIds, editedPosts]);
+
+  // Handle post updates with optimistic UI
+  const handlePostUpdate = useCallback(
+    (action: string, postId?: string, updatedPost?: Post) => {
+      if (action === "delete" && postId) {
+        setDeletedPostIds(prev => {
+          const newIds = new Set(prev);
+          newIds.add(postId);
+          return newIds;
+        });
+      } else if (action === "edit" && postId && updatedPost) {
+        setEditedPosts(prev => ({
+          ...prev,
+          [postId]: updatedPost,
+        }));
+      }
+
+      // Revalidate data after any change
+      mutateUser();
+      mutatePosts();
+    },
+    [mutateUser, mutatePosts]
+  );
 
   if (isError || !user) {
     return (
@@ -115,25 +159,29 @@ const ProfilePage: NextPage<ProfilePageProps> = ({
   return (
     <>
       <Head>
-        <title>{`${user.name} (${user.email}) | Picwall`}</title>
+        <title>{`${user?.name} (${user?.email}) | Picwall`}</title>
         <meta
           name="description"
-          content={user.bio || `Check out ${user.name}'s photos on Picwall`}
+          content={user?.bio || `Check out ${user?.name}'s photos on Picwall`}
         />
       </Head>
       <div className="flex min-h-screen bg-black text-white">
         {/* Sidebar */}
-        <Sidebar />
+        <Sidebar onPostCreated={() => mutatePosts()} />
 
         {/* Main content */}
         <main className="flex-1 max-w-6xl mx-auto pb-24 md:pb-0">
           <ProfileHeader
             user={user}
-            postsCount={posts.length}
+            postsCount={processedPosts.length}
             onEditProfile={handleEditProfile}
           />
           <div className="border-t border-zinc-800 mb-4"></div>
-          <ProfileGallery posts={posts} isLoading={isLoadingPosts} />
+          <ProfileGallery
+            posts={processedPosts}
+            isLoading={isLoadingPosts}
+            onPostUpdate={handlePostUpdate}
+          />
 
           {isModalOpen && (
             <EditProfileModal

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { NextSeo } from "next-seo";
 import useSWR from "swr";
 import { useSession } from "@/lib/auth-client";
@@ -30,6 +30,8 @@ export default function ExplorePage() {
   const { data: session } = useSession();
   const isLoggedIn = !!session;
   const [isMobile, setIsMobile] = useState(false);
+  const [deletedPostIds, setDeletedPostIds] = useState<Set<string>>(new Set());
+  const [editedPosts, setEditedPosts] = useState<Record<string, any>>({});
 
   useEffect(() => {
     const checkIfMobile = () => {
@@ -51,9 +53,46 @@ export default function ExplorePage() {
     }
   );
 
-  const handlePostUpdated = () => {
-    mutate();
-  };
+  // Reactive approach to update UI instantly
+  const handlePostUpdated = useCallback(
+    (action: string = "update", postId?: string, updatedPost?: any) => {
+      // Handle deletion with optimistic UI update
+      if (action === "delete" && postId) {
+        setDeletedPostIds(prev => {
+          const newIds = new Set(prev);
+          newIds.add(postId);
+          return newIds;
+        });
+      }
+
+      // Handle edit with optimistic UI update
+      else if (action === "edit" && postId && updatedPost) {
+        setEditedPosts(prev => ({
+          ...prev,
+          [postId]: updatedPost,
+        }));
+      }
+
+      // Always trigger revalidation for data consistency
+      mutate();
+    },
+    [mutate]
+  );
+
+  // Create filtered and updated posts
+  const processedPosts = useMemo(() => {
+    if (!data?.posts) return [];
+
+    // First filter out deleted posts
+    let result = data.posts.filter((post: any) => !deletedPostIds.has(post.id));
+
+    // Then apply any edits
+    result = result.map((post: any) =>
+      editedPosts[post.id] ? { ...post, ...editedPosts[post.id] } : post
+    );
+
+    return result;
+  }, [data?.posts, deletedPostIds, editedPosts]);
 
   return (
     <>
@@ -69,7 +108,9 @@ export default function ExplorePage() {
       <div
         className={`flex min-h-screen bg-black text-white ${geistSans.variable} ${geistMono.variable}`}
       >
-        {!isMobile && <Sidebar onPostCreated={handlePostUpdated} />}
+        {!isMobile && (
+          <Sidebar onPostCreated={() => handlePostUpdated("create")} />
+        )}
 
         <main
           className={`flex-1 mx-auto py-6 px-4 ${
@@ -94,12 +135,12 @@ export default function ExplorePage() {
                         i % 5 === 0
                           ? "aspect-square"
                           : i % 5 === 1
-                            ? "aspect-[4/5]"
-                            : i % 5 === 2
-                              ? "aspect-[4/3]"
-                              : i % 5 === 3
-                                ? "aspect-[3/4]"
-                                : "aspect-square"
+                          ? "aspect-[4/5]"
+                          : i % 5 === 2
+                          ? "aspect-[4/3]"
+                          : i % 5 === 3
+                          ? "aspect-[3/4]"
+                          : "aspect-square"
                       }`}
                     />
                   </div>
@@ -109,21 +150,24 @@ export default function ExplorePage() {
               <div className="text-center py-10 text-red-500">
                 Error loading posts. Please try again.
               </div>
-            ) : !data || !data.posts || data.posts.length === 0 ? (
+            ) : !processedPosts || processedPosts.length === 0 ? (
               <div className="text-center py-10">
                 No posts found. Be the first to share your moments!
               </div>
             ) : (
               <ExploreGallery
-                posts={data.posts}
+                posts={processedPosts}
                 isLoggedIn={isLoggedIn}
                 userSession={session}
+                onPostUpdate={handlePostUpdated}
               />
             )}
           </div>
         </main>
 
-        {isMobile && <Sidebar onPostCreated={handlePostUpdated} />}
+        {isMobile && (
+          <Sidebar onPostCreated={() => handlePostUpdated("create")} />
+        )}
       </div>
     </>
   );

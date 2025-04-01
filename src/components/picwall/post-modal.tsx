@@ -68,7 +68,7 @@ interface PostModalProps {
     userId?: string;
   };
   isLoggedIn: boolean;
-  onPostUpdate?: () => void;
+  onPostUpdate?: (action: string, postId?: string, updatedPost?: any) => void;
 }
 
 // Use email as username without formatting
@@ -203,7 +203,18 @@ export function PostModal({
 
     // Call the parent's revalidation function if provided
     if (onPostUpdate) {
-      onPostUpdate();
+      onPostUpdate("update", post.id, {
+        id: post.id,
+        username: post.username,
+        userImage: post.userImage,
+        timeAgo: post.timeAgo,
+        image: post.image,
+        likes: post.likes,
+        caption: post.caption,
+        comments: post.comments,
+        liked: post.liked,
+        userId: post.userId,
+      });
     }
   };
 
@@ -375,6 +386,51 @@ export function PostModal({
 
     setIsDeleting(true);
 
+    // Close dialogs immediately for responsive feel
+    setIsDeleteDialogOpen(false);
+    onClose();
+
+    // Call the parent's update function if provided
+    if (onPostUpdate) {
+      onPostUpdate("delete", post.id);
+    }
+
+    // Optimistically update the UI - hide post without waiting for server
+    mutate(
+      "/api/posts",
+      async (currentData: any) => {
+        if (Array.isArray(currentData)) {
+          return currentData.filter(p => p.id !== post.id);
+        }
+        return currentData;
+      },
+      {
+        optimisticData: (currentData: any) =>
+          Array.isArray(currentData)
+            ? currentData.filter(p => p.id !== post.id)
+            : currentData,
+        revalidate: false,
+      }
+    );
+
+    // Also update profile posts if this is from a profile view
+    mutate(
+      `/api/posts?userId=${session.user.id}`,
+      async (currentData: any) => {
+        if (Array.isArray(currentData)) {
+          return currentData.filter(p => p.id !== post.id);
+        }
+        return currentData;
+      },
+      {
+        optimisticData: (currentData: any) =>
+          Array.isArray(currentData)
+            ? currentData.filter(p => p.id !== post.id)
+            : currentData,
+        revalidate: false,
+      }
+    );
+
     try {
       const response = await fetch(`/api/post?id=${post.id}`, {
         method: "DELETE",
@@ -387,11 +443,7 @@ export function PostModal({
       });
 
       if (response.ok) {
-        // Close any open dialogs and the modal
-        setIsDeleteDialogOpen(false);
-        onClose();
-
-        // Revalidate data for the user's posts and feed
+        // Revalidate all relevant data sources to ensure consistency
         mutate("/api/posts");
         mutate(`/api/posts?userId=${session.user.id}`);
 
@@ -401,9 +453,15 @@ export function PostModal({
         }
       } else {
         console.error("Failed to delete post");
+        // If delete fails, revalidate to restore the original data
+        mutate("/api/posts");
+        mutate(`/api/posts?userId=${session.user.id}`);
       }
     } catch (error) {
       console.error("Error deleting post:", error);
+      // If error occurs, revalidate to restore the original data
+      mutate("/api/posts");
+      mutate(`/api/posts?userId=${session.user.id}`);
     } finally {
       setIsDeleting(false);
     }
@@ -490,7 +548,7 @@ export function PostModal({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 rounded-full"
+                          className="h-8 w-8 rounded-full mr-6"
                         >
                           <MoreVertical className="h-4 w-4" />
                           <span className="sr-only">Options</span>

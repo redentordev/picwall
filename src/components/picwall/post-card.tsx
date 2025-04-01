@@ -49,6 +49,7 @@ interface PostCardProps {
   isLoggedIn: boolean;
   liked?: boolean;
   userId: string;
+  onPostUpdate?: (action: string, postId?: string, updatedPost?: any) => void;
 }
 
 interface PostModalProps {
@@ -67,7 +68,7 @@ interface PostModalProps {
     userId?: string;
   };
   isLoggedIn: boolean;
-  onPostUpdate?: () => void;
+  onPostUpdate?: (action: string, postId?: string) => void;
 }
 
 // Use email as username without formatting
@@ -102,6 +103,7 @@ export function PostCard({
   isLoggedIn,
   liked = false,
   userId,
+  onPostUpdate,
 }: PostCardProps) {
   const [isLiked, setIsLiked] = useState(liked);
   const [likesCount, setLikesCount] = useState(likes);
@@ -322,6 +324,51 @@ export function PostCard({
 
     setIsDeleting(true);
 
+    // Immediately close dialogs and modals for responsive UI
+    setIsModalOpen(false);
+    setIsDeleteDialogOpen(false);
+
+    // Call the parent component's update function if provided
+    if (onPostUpdate) {
+      onPostUpdate("delete", id);
+    }
+
+    // Optimistically update the UI - hide post without waiting for server
+    mutate(
+      "/api/posts",
+      async (currentData: any) => {
+        if (Array.isArray(currentData)) {
+          return currentData.filter(p => p.id !== id);
+        }
+        return currentData;
+      },
+      {
+        optimisticData: (currentData: any) =>
+          Array.isArray(currentData)
+            ? currentData.filter(p => p.id !== id)
+            : currentData,
+        revalidate: false,
+      }
+    );
+
+    // Also update profile posts if this is from a profile view
+    mutate(
+      `/api/posts?userId=${session.user.id}`,
+      async (currentData: any) => {
+        if (Array.isArray(currentData)) {
+          return currentData.filter(p => p.id !== id);
+        }
+        return currentData;
+      },
+      {
+        optimisticData: (currentData: any) =>
+          Array.isArray(currentData)
+            ? currentData.filter(p => p.id !== id)
+            : currentData,
+        revalidate: false,
+      }
+    );
+
     try {
       const response = await fetch(`/api/post?id=${id}`, {
         method: "DELETE",
@@ -334,11 +381,8 @@ export function PostCard({
       });
 
       if (response.ok) {
-        // Close any open modal
-        setIsModalOpen(false);
-        setIsDeleteDialogOpen(false);
-
         // Revalidate data cache for the user's posts and feed
+        // to ensure server state is synchronized
         mutate("/api/posts");
         mutate(`/api/posts?userId=${session.user.id}`);
 
@@ -348,9 +392,15 @@ export function PostCard({
         }
       } else {
         console.error("Failed to delete post");
+        // If delete fails, revalidate to restore the original data
+        mutate("/api/posts");
+        mutate(`/api/posts?userId=${session.user.id}`);
       }
     } catch (error) {
       console.error("Error deleting post:", error);
+      // If error occurs, revalidate to restore the original data
+      mutate("/api/posts");
+      mutate(`/api/posts?userId=${session.user.id}`);
     } finally {
       setIsDeleting(false);
     }
@@ -717,10 +767,14 @@ export function PostCard({
           userId,
         }}
         isLoggedIn={isLoggedIn}
-        onPostUpdate={() => {
+        onPostUpdate={(action, postId) => {
           // Refresh data
           mutate(`/api/post?id=${id}`);
           mutate("/api/posts");
+          // Call the parent component's update function if provided
+          if (onPostUpdate) {
+            onPostUpdate(action, postId);
+          }
         }}
       />
 

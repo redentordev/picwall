@@ -25,18 +25,37 @@ interface ExploreGalleryProps {
   posts: any[];
   isLoggedIn: boolean;
   userSession: any;
+  onPostUpdate?: (action: string, postId?: string, updatedPost?: any) => void;
 }
 
 export function ExploreGallery({
   posts,
   isLoggedIn,
   userSession,
+  onPostUpdate,
 }: ExploreGalleryProps) {
   const [selectedPost, setSelectedPost] = useState<any | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [userDataCache, setUserDataCache] = useState<Record<string, any>>({});
   const [_, setIsMobile] = useState(false);
   const [columns, setColumns] = useState(4);
+  const [localPosts, setLocalPosts] = useState<any[]>(posts);
+  const [deletedPostIds, setDeletedPostIds] = useState<Set<string>>(new Set());
+  const [editedPosts, setEditedPosts] = useState<Record<string, any>>({});
+
+  // Reactive approach - update localPosts whenever props, deleted or edited posts change
+  useEffect(() => {
+    // Start with filtered posts (removing deleted)
+    let updatedPosts = posts.filter(post => !deletedPostIds.has(post.id));
+
+    // Apply any edits
+    updatedPosts = updatedPosts.map(post => {
+      // If this post has an edited version, return the edited version instead
+      return editedPosts[post.id] ? { ...post, ...editedPosts[post.id] } : post;
+    });
+
+    setLocalPosts(updatedPosts);
+  }, [posts, deletedPostIds, editedPosts]);
 
   // Check if on mobile device and set number of columns
   useEffect(() => {
@@ -62,12 +81,12 @@ export function ExploreGallery({
 
   // Sort posts by date, newest first - use useMemo to avoid recomputation
   const sortedPosts = useMemo(() => {
-    return [...posts].sort((a, b) => {
+    return [...localPosts].sort((a, b) => {
       const dateA = new Date(a.createdAt || 0);
       const dateB = new Date(b.createdAt || 0);
       return dateB.getTime() - dateA.getTime();
     });
-  }, [posts]);
+  }, [localPosts]);
 
   // Distribute posts into columns (Pinterest style)
   const columnedPosts = useMemo(() => {
@@ -239,10 +258,54 @@ export function ExploreGallery({
     }
   }, [selectedPost, commentUserIds]);
 
-  // Handle post update (like, comment, etc.)
-  const handlePostUpdate = useCallback(() => {
-    revalidateData();
-  }, [revalidateData]);
+  // Enhanced post update handler for handling all operations with reactive UI
+  const handlePostUpdate = useCallback(
+    (action: string = "update", postId?: string, updatedPostData?: any) => {
+      // Handle deletion with optimistic UI update
+      if (action === "delete" && postId) {
+        // Track deleted posts
+        setDeletedPostIds(prev => {
+          const newIds = new Set(prev);
+          newIds.add(postId);
+          return newIds;
+        });
+
+        // Close modal if the deleted post is currently selected
+        if (selectedPost && selectedPost.id === postId) {
+          setIsModalOpen(false);
+          setSelectedPost(null);
+        }
+
+        // Propagate to parent if provided
+        if (onPostUpdate) {
+          onPostUpdate(action, postId);
+        }
+      }
+
+      // Handle edit with optimistic UI update
+      else if (action === "edit" && postId && updatedPostData) {
+        // Store the edited version
+        setEditedPosts(prev => ({
+          ...prev,
+          [postId]: updatedPostData,
+        }));
+
+        // If this post is currently selected, update its data in the modal
+        if (selectedPost && selectedPost.id === postId) {
+          setSelectedPost((prev: any) => ({ ...prev, ...updatedPostData }));
+        }
+
+        // Propagate to parent if provided
+        if (onPostUpdate) {
+          onPostUpdate(action, postId, updatedPostData);
+        }
+      }
+
+      // Handle all operations through revalidation for consistency
+      revalidateData();
+    },
+    [revalidateData, selectedPost, onPostUpdate]
+  );
 
   return (
     <>
@@ -326,7 +389,10 @@ export function ExploreGallery({
           onClose={handleCloseModal}
           post={formattedPost}
           isLoggedIn={isLoggedIn}
-          onPostUpdate={handlePostUpdate}
+          onPostUpdate={(action, postId) => {
+            // Handle the update through our main handler
+            handlePostUpdate(action, postId);
+          }}
         />
       )}
     </>

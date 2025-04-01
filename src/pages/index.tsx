@@ -3,7 +3,7 @@ import { Sidebar } from "@/components/picwall/sidebar";
 import { PostCard } from "@/components/picwall/post-card";
 import { useSession } from "@/lib/auth-client";
 import { faker } from "@faker-js/faker";
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useRef, useCallback, useState, useMemo } from "react";
 import useSWRInfinite from "swr/infinite";
 import { NextSeo } from "next-seo";
 import { CreatePostModal } from "@/components/picwall/create-post-modal";
@@ -157,6 +157,7 @@ export default function Home() {
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
+  const [deletedPostIds, setDeletedPostIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const checkIfMobile = () => {
@@ -327,6 +328,30 @@ export default function Home() {
     mutate();
   }, [mutate]);
 
+  const handlePostUpdated = useCallback(
+    (postId?: string) => {
+      // Handle post deletion
+      if (postId) {
+        // Track deleted post IDs
+        setDeletedPostIds(prevIds => {
+          const newIds = new Set(prevIds);
+          newIds.add(postId);
+          return newIds;
+        });
+      }
+
+      // Revalidate the data
+      console.log("Revalidating SWR data after post update");
+      mutate();
+    },
+    [mutate]
+  );
+
+  // Filter out deleted posts from the displayed posts
+  const filteredPosts = useMemo(() => {
+    return posts.filter(post => !deletedPostIds.has(post.id));
+  }, [posts, deletedPostIds]);
+
   return (
     <>
       <NextSeo
@@ -400,7 +425,7 @@ export default function Home() {
             </div>
           ) : (
             <>
-              {posts.map(post => (
+              {filteredPosts.map(post => (
                 <PostCard
                   key={post.id}
                   id={post.id}
@@ -414,6 +439,7 @@ export default function Home() {
                   comments={post.comments}
                   isLoggedIn={isLoggedIn}
                   liked={post.liked}
+                  onPostUpdate={() => handlePostUpdated(post.id)}
                 />
               ))}
 

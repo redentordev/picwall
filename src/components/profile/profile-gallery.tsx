@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Image from "next/image";
 import { Heart, MessageCircle } from "lucide-react";
-import useSWR from "swr";
+import useSWR, { mutate } from "swr";
 import { Post, User } from "@/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PostModal } from "@/components/picwall/post-modal";
@@ -27,14 +27,34 @@ const getUserImage = (
 interface ProfileGalleryProps {
   posts: Post[];
   isLoading: boolean;
+  onPostUpdate?: (action: string, postId?: string, updatedPost?: Post) => void;
 }
 
-export function ProfileGallery({ posts, isLoading }: ProfileGalleryProps) {
+export function ProfileGallery({
+  posts,
+  isLoading,
+  onPostUpdate,
+}: ProfileGalleryProps) {
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { data: session } = useSession();
   const isLoggedIn = !!session;
   const [userDataCache, setUserDataCache] = useState<Record<string, User>>({});
+  const [deletedPostIds, setDeletedPostIds] = useState<Set<string>>(new Set());
+  const [editedPosts, setEditedPosts] = useState<Record<string, Post>>({});
+
+  // Process posts reactively - filter deleted and apply edits
+  const localPosts = useMemo(() => {
+    // Start with filtering out deleted posts
+    let result = posts.filter(post => !deletedPostIds.has(post.id));
+
+    // Then apply any edits
+    result = result.map(post =>
+      editedPosts[post.id] ? { ...post, ...editedPosts[post.id] } : post
+    );
+
+    return result;
+  }, [posts, deletedPostIds, editedPosts]);
 
   // Fetch selected post data using SWR when a post is clicked
   const { data: postData } = useSWR(
@@ -106,6 +126,7 @@ export function ProfileGallery({ posts, isLoading }: ProfileGalleryProps) {
     postData?.post && userData?.user
       ? {
           id: postData.post.id,
+          userId: postData.post.userId,
           username: userData.user.email || "",
           userImage: getUserImage(userData.user.image, userData.user.id),
           timeAgo: postData.post.createdAt
@@ -151,6 +172,51 @@ export function ProfileGallery({ posts, isLoading }: ProfileGalleryProps) {
     setSelectedPostId(null);
   };
 
+  // Enhanced handler for post updates using reactive approach
+  const handlePostUpdate = useCallback(
+    (action: string = "update", postId?: string, updatedPost?: Post) => {
+      // Handle deletion with optimistic UI update
+      if (action === "delete" && postId) {
+        // Track deleted posts for immediate UI update
+        setDeletedPostIds(prevIds => {
+          const newIds = new Set(prevIds);
+          newIds.add(postId);
+          return newIds;
+        });
+
+        // If this post is currently open in the modal, close it
+        if (selectedPostId === postId) {
+          setIsModalOpen(false);
+          setSelectedPostId(null);
+        }
+
+        // Propagate to parent if provided
+        if (onPostUpdate) {
+          onPostUpdate(action, postId);
+        }
+      }
+      // Handle edit with optimistic UI update
+      else if (action === "edit" && postId && updatedPost) {
+        // Store edited posts for immediate UI update
+        setEditedPosts(prev => ({
+          ...prev,
+          [postId]: updatedPost,
+        }));
+
+        // Propagate to parent if provided
+        if (onPostUpdate) {
+          onPostUpdate(action, postId, updatedPost);
+        }
+      }
+
+      // Revalidate data for both creation and updates
+      if (session?.user?.id) {
+        mutate(`/api/posts?userId=${session.user.id}`);
+      }
+    },
+    [selectedPostId, session, onPostUpdate]
+  );
+
   if (isLoading) {
     return (
       <div className="px-4 py-6">
@@ -165,7 +231,7 @@ export function ProfileGallery({ posts, isLoading }: ProfileGalleryProps) {
     );
   }
 
-  if (!posts || posts.length === 0) {
+  if (!localPosts || localPosts.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 px-4">
         <h3 className="text-lg font-medium mb-2">No Posts Yet</h3>
@@ -179,7 +245,7 @@ export function ProfileGallery({ posts, isLoading }: ProfileGalleryProps) {
   return (
     <div className="px-2 sm:px-4 py-4 sm:py-6">
       <div className="grid grid-cols-3 gap-1 sm:gap-2">
-        {posts.map(post => (
+        {localPosts.map(post => (
           <div
             key={post.id}
             className="relative aspect-square group cursor-pointer"
@@ -224,6 +290,10 @@ export function ProfileGallery({ posts, isLoading }: ProfileGalleryProps) {
           onClose={handleCloseModal}
           post={formattedPost}
           isLoggedIn={isLoggedIn}
+          onPostUpdate={(action, postId) => {
+            // Handle updates through our optimistic update handler
+            handlePostUpdate(action, postId);
+          }}
         />
       )}
     </div>
