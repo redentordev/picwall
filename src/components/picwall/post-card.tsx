@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -29,6 +29,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { mutate } from "swr";
 import { useRouter } from "next/router";
+import { parseAsString, useQueryState } from "nuqs";
 
 interface Comment {
   username: string;
@@ -149,6 +150,21 @@ export function PostCard({
       return () => window.removeEventListener("resize", checkIfMobile);
     }
   });
+
+  // Use nuqs to track modal state in the URL
+  const [postIdParam, setPostIdParam] = useQueryState("postId", {
+    history: "push",
+    defaultValue: "",
+  });
+
+  // Sync the local modal state with the URL parameter
+  useEffect(() => {
+    if (postIdParam === id) {
+      setIsModalOpen(true);
+    } else if (postIdParam === "" && isModalOpen) {
+      setIsModalOpen(false);
+    }
+  }, [postIdParam, id, isModalOpen]);
 
   const displayedComments = showAllComments
     ? localComments
@@ -429,10 +445,14 @@ export function PostCard({
 
   const openModal = () => {
     setIsModalOpen(true);
+    // Update the URL when opening the modal
+    setPostIdParam(id);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
+    // Clear the URL parameter when closing the modal
+    setPostIdParam("");
   };
 
   return (

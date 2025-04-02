@@ -4,6 +4,7 @@ import useSWR, { mutate } from "swr";
 import { Heart, MessageCircle } from "lucide-react";
 import { PostModal } from "@/components/picwall/post-modal";
 import { formatTimeAgo } from "@/lib/date-utils";
+import { parseAsString, useQueryState } from "nuqs";
 
 // Function to get user image with fallback
 const getUserImage = (
@@ -42,6 +43,12 @@ export function ExploreGallery({
   const [localPosts, setLocalPosts] = useState<any[]>(posts);
   const [deletedPostIds, setDeletedPostIds] = useState<Set<string>>(new Set());
   const [editedPosts, setEditedPosts] = useState<Record<string, any>>({});
+
+  // Use nuqs to track modal state in the URL
+  const [postIdParam, setPostIdParam] = useQueryState("postId", {
+    defaultValue: "",
+    history: "push",
+  });
 
   // Reactive approach - update localPosts whenever props, deleted or edited posts change
   useEffect(() => {
@@ -185,15 +192,37 @@ export function ExploreGallery({
     }
   }, [commentUsersData]); // Remove userDataCache from dependency array
 
-  const handlePostClick = useCallback((post: any) => {
-    setSelectedPost(post);
-    setIsModalOpen(true);
-  }, []);
+  // Sync the local modal state with the URL parameter
+  useEffect(() => {
+    if (postIdParam && postIdParam !== "") {
+      // Find the post with the matching ID
+      const post = posts.find(p => p.id === postIdParam);
+      if (post) {
+        setSelectedPost(post);
+        setIsModalOpen(true);
+      }
+    } else if (postIdParam === "" && isModalOpen) {
+      setIsModalOpen(false);
+      setSelectedPost(null);
+    }
+  }, [postIdParam, posts, isModalOpen]);
+
+  const handlePostClick = useCallback(
+    (post: any) => {
+      setSelectedPost(post);
+      setIsModalOpen(true);
+      // Update the URL when opening the modal
+      setPostIdParam(post.id);
+    },
+    [setPostIdParam]
+  );
 
   const handleCloseModal = useCallback(() => {
     setIsModalOpen(false);
     setSelectedPost(null);
-  }, []);
+    // Clear the URL parameter when closing the modal
+    setPostIdParam("");
+  }, [setPostIdParam]);
 
   // Format post data for the modal - use useMemo to prevent recalculation on every render
   const formattedPost = useMemo(() => {

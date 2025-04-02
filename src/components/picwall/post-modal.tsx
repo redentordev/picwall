@@ -26,6 +26,7 @@ import { useSession } from "@/lib/auth-client";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { formatTimeAgo } from "@/lib/date-utils";
 import { mutate } from "swr";
+import { parseAsString, useQueryState } from "nuqs";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -98,6 +99,12 @@ export function PostModal({
   isLoggedIn,
   onPostUpdate,
 }: PostModalProps) {
+  // Add nuqs state for tracking the open post in URL
+  const [postIdParam, setPostIdParam] = useQueryState("postId", {
+    defaultValue: "",
+    history: "push",
+  });
+
   const commentInputRef = useRef<HTMLInputElement>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [showComments, setShowComments] = useState(false);
@@ -180,6 +187,25 @@ export function PostModal({
     }
   }, [isOpen, isLoggedIn, showComments, isMobile]);
 
+  // Sync the postIdParam with the modal open state
+  useEffect(() => {
+    if (isOpen && post?.id) {
+      // Update URL when modal opens
+      setPostIdParam(post.id);
+    } else if (!isOpen) {
+      // Clear URL parameter when modal closes
+      setPostIdParam("");
+    }
+  }, [isOpen, post?.id, setPostIdParam]);
+
+  // Listen for URL changes (including back button) to close modal
+  useEffect(() => {
+    if (isOpen && (!postIdParam || postIdParam === "")) {
+      // If the modal is open but the URL doesn't have the postId, close it
+      onClose();
+    }
+  }, [postIdParam, isOpen, onClose]);
+
   // Handle escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -187,6 +213,8 @@ export function PostModal({
         if (showComments && isMobile) {
           setShowComments(false);
         } else {
+          // Clear the postId param which will trigger the modal to close
+          setPostIdParam("");
           onClose();
         }
       }
@@ -194,7 +222,7 @@ export function PostModal({
 
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-  }, [onClose, showComments, isMobile]);
+  }, [onClose, showComments, isMobile, setPostIdParam]);
 
   // Function to revalidate data
   const revalidateData = () => {
@@ -493,7 +521,16 @@ export function PostModal({
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
+      <Dialog
+        open={isOpen}
+        onOpenChange={open => {
+          if (!open) {
+            // When dialog is closed, clear the URL parameter
+            setPostIdParam("");
+            onClose();
+          }
+        }}
+      >
         <DialogOverlay className="bg-black/80 backdrop-blur-sm" />
         <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-[80vw] md:max-w-[90vw] lg:max-w-[80vw] xl:max-w-6xl p-0 bg-zinc-900 border border-zinc-800 overflow-hidden rounded-lg max-h-[90vh]">
           <VisuallyHidden>

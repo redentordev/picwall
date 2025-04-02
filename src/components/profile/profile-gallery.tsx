@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PostModal } from "@/components/picwall/post-modal";
 import { useSession } from "@/lib/auth-client";
 import { formatTimeAgo } from "@/lib/date-utils";
+import { parseAsString, useQueryState } from "nuqs";
 
 // SWR fetcher function
 const fetcher = async (url: string) => {
@@ -42,6 +43,12 @@ export function ProfileGallery({
   const [userDataCache, setUserDataCache] = useState<Record<string, User>>({});
   const [deletedPostIds, setDeletedPostIds] = useState<Set<string>>(new Set());
   const [editedPosts, setEditedPosts] = useState<Record<string, Post>>({});
+
+  // Use nuqs to track modal state in the URL
+  const [postIdParam, setPostIdParam] = useQueryState("postId", {
+    defaultValue: "",
+    history: "push",
+  });
 
   // Process posts reactively - filter deleted and apply edits
   const localPosts = useMemo(() => {
@@ -162,14 +169,33 @@ export function ProfileGallery({
         }
       : null;
 
+  // Sync the local modal state with the URL parameter
+  useEffect(() => {
+    if (postIdParam && postIdParam !== "") {
+      // Find the post with the matching ID
+      const post = posts.find(p => p.id === postIdParam);
+      if (post) {
+        setSelectedPostId(postIdParam);
+        setIsModalOpen(true);
+      }
+    } else if (postIdParam === "" && isModalOpen) {
+      setIsModalOpen(false);
+      setSelectedPostId(null);
+    }
+  }, [postIdParam, posts, isModalOpen]);
+
   const handlePostClick = (post: Post) => {
     setSelectedPostId(post.id);
     setIsModalOpen(true);
+    // Update the URL when opening the modal
+    setPostIdParam(post.id);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedPostId(null);
+    // Clear the URL parameter when closing the modal
+    setPostIdParam("");
   };
 
   // Enhanced handler for post updates using reactive approach

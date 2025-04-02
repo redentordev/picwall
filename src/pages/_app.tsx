@@ -4,6 +4,7 @@ import "@/styles/globals.css";
 import type { AppProps } from "next/app";
 import { DefaultSeo } from "next-seo";
 import { useEffect } from "react";
+import { NuqsAdapter } from "nuqs/adapters/next/pages";
 
 export default function App({ Component, pageProps }: AppProps) {
   useEffect(() => {
@@ -40,21 +41,23 @@ export default function App({ Component, pageProps }: AppProps) {
       forcedTheme="dark"
       disableTransitionOnChange
     >
-      <DefaultSeo
-        openGraph={{
-          type: "website",
-          locale: "en_IE",
-          url: "https://picwall.redentor.dev/",
-          siteName: "Picwall",
-        }}
-        twitter={{
-          handle: "@redentor_dev",
-          site: "@redentor_dev",
-          cardType: "summary_large_image",
-        }}
-      />
-      <Component {...pageProps} />
-      <Toaster />
+      <NuqsAdapter>
+        <DefaultSeo
+          openGraph={{
+            type: "website",
+            locale: "en_IE",
+            url: "https://picwall.redentor.dev/",
+            siteName: "Picwall",
+          }}
+          twitter={{
+            handle: "@redentor_dev",
+            site: "@redentor_dev",
+            cardType: "summary_large_image",
+          }}
+        />
+        <Component {...pageProps} />
+        <Toaster />
+      </NuqsAdapter>
     </ThemeProvider>
   );
 }
