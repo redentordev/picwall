@@ -8,6 +8,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { useRouter } from "next/router";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -15,6 +16,7 @@ const loginSchema = z.object({
 });
 
 const LoginForm = () => {
+  const router = useRouter();
   const {
     register,
     handleSubmit,
@@ -37,6 +39,9 @@ const LoginForm = () => {
 
     if (result.error) {
       toast.error(`${result.error.statusText}: ${result.error.message}`);
+    } else {
+      router.replace("/");
+      window.history.replaceState(null, "", "/");
     }
   };
 
@@ -98,7 +103,10 @@ const LoginForm = () => {
         <Button
           variant="outline"
           className="bg-zinc-800 border-zinc-700 text-white hover:bg-zinc-700 cursor-pointer"
-          onClick={async () => await signIn.social({ provider: "github" })}
+          onClick={async () => {
+            await signIn.social({ provider: "github" });
+            window.history.replaceState(null, "", "/");
+          }}
         >
           <Github className="mr-2 h-4 w-4" />
           GitHub
@@ -106,7 +114,10 @@ const LoginForm = () => {
         <Button
           variant="outline"
           className="bg-zinc-800 border-zinc-700 text-white hover:bg-zinc-700 cursor-pointer"
-          onClick={async () => await signIn.social({ provider: "google" })}
+          onClick={async () => {
+            await signIn.social({ provider: "google" });
+            window.history.replaceState(null, "", "/");
+          }}
         >
           <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
             <path
