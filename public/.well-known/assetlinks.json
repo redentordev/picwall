@@ -3,6 +3,6 @@
       "target": {
         "namespace": "android_app",
         "package_name": "dev.redentor.picwall.twa",
-        "sha256_cert_fingerprints": ["2B:DA:43:54:1E:19:68:4F:07:BF:46:9B:89:49:CA:FD:1E:45:1F:6E:1D:B7:0A:81:8D:D8:95:E4:8E:57:85:4E"]
+        "sha256_cert_fingerprints": ["DC:79:15:52:43:78:A6:4D:F7:35:39:1E:0A:4E:56:A7:AE:10:B3:52:58:56:A3:C4:38:03:12:89:45:5E:A2:0B"]
       }
     }]
