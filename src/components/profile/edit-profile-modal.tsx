@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { User } from "@/types";
 import {
@@ -43,6 +43,20 @@ export default function EditProfileModal({
     user.image || null
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Synchronize form state with user prop when it changes
+  useEffect(() => {
+    if (isOpen) {
+      setFormState({
+        name: user.name,
+        bio: user.bio || "",
+        image: user.image || "",
+      });
+      setImagePreview(user.image || null);
+      setError("");
+      setUploadFeedback("");
+    }
+  }, [isOpen, user]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -199,18 +213,33 @@ export default function EditProfileModal({
 
       const data = await response.json();
       onSave(data.user);
-      onClose();
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "An unknown error occurred"
       );
-    } finally {
       setIsSubmitting(false);
     }
   };
 
+  // Handle escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isOpen) {
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [isOpen, onClose]);
+
   return (
-    <Dialog open={isOpen} onOpenChange={isOpen => !isOpen && onClose()}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={open => {
+        if (!open) onClose();
+      }}
+    >
       <DialogContent className="sm:max-w-[500px] bg-zinc-900 text-white border-zinc-800">
         <DialogHeader>
           <DialogTitle>Edit Profile</DialogTitle>

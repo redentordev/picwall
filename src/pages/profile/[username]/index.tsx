@@ -1,13 +1,14 @@
 import type { GetServerSideProps, NextPage } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import useSWR, { mutate as globalMutate } from "swr";
 import { ProfileHeader } from "@/components/profile/profile-header";
 import { ProfileGallery } from "@/components/profile/profile-gallery";
 import { Sidebar } from "@/components/picwall/sidebar";
 import { User, Post } from "@/types";
 import EditProfileModal from "@/components/profile/edit-profile-modal";
+import { useQueryState } from "nuqs";
 
 // SWR fetcher function
 const fetcher = (url: string) =>
@@ -27,9 +28,17 @@ const ProfilePage: NextPage<ProfilePageProps> = ({
 }) => {
   const router = useRouter();
   const { username } = router.query;
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [deletedPostIds, setDeletedPostIds] = useState<Set<string>>(new Set());
   const [editedPosts, setEditedPosts] = useState<Record<string, Post>>({});
+
+  // Replace local state with nuqs query state
+  const [editProfileParam, setEditProfileParam] = useQueryState("editProfile", {
+    defaultValue: "",
+    history: "push",
+  });
+
+  // Derive modal open state from URL parameter
+  const isModalOpen = editProfileParam === "true";
 
   // Use SWR for user data with the fallback from SSR
   const {
@@ -101,6 +110,14 @@ const ProfilePage: NextPage<ProfilePageProps> = ({
     [mutateUser, mutatePosts]
   );
 
+  // Handle URL changes (including back button) for modal state
+  useEffect(() => {
+    // If the URL no longer has the editProfile param, close the modal
+    if (editProfileParam === "" && isModalOpen) {
+      setEditProfileParam("");
+    }
+  }, [editProfileParam, isModalOpen, setEditProfileParam]);
+
   if (isError || !user) {
     return (
       <>
@@ -147,13 +164,18 @@ const ProfilePage: NextPage<ProfilePageProps> = ({
   }
 
   const handleEditProfile = () => {
-    setIsModalOpen(true);
+    setEditProfileParam("true");
+  };
+
+  const handleCloseModal = () => {
+    setEditProfileParam("");
   };
 
   const handleProfileUpdated = (updatedUser: User) => {
     // Use SWR's mutate to update the cache
     mutateUser({ user: updatedUser }, false);
-    setIsModalOpen(false);
+    // Clear URL parameter
+    handleCloseModal();
   };
 
   return (
@@ -183,14 +205,13 @@ const ProfilePage: NextPage<ProfilePageProps> = ({
             onPostUpdate={handlePostUpdate}
           />
 
-          {isModalOpen && (
-            <EditProfileModal
-              user={user}
-              isOpen={isModalOpen}
-              onClose={() => setIsModalOpen(false)}
-              onSave={handleProfileUpdated}
-            />
-          )}
+          {/* Edit Profile Modal */}
+          <EditProfileModal
+            user={user}
+            isOpen={isModalOpen}
+            onClose={handleCloseModal}
+            onSave={handleProfileUpdated}
+          />
         </main>
       </div>
     </>
