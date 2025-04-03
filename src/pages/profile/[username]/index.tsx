@@ -52,7 +52,8 @@ const ProfilePage: NextPage<ProfilePageProps> = ({
     fetcher,
     {
       fallbackData: fallbackUser ? { user: fallbackUser } : undefined,
-      revalidateOnFocus: false,
+      revalidateOnFocus: true,
+      revalidateIfStale: true,
     }
   );
 

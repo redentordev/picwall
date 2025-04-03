@@ -286,7 +286,8 @@ export default function Home() {
     useSWRInfinite(getKey, fetcher, {
       revalidateFirstPage: true,
       persistSize: true,
-      revalidateOnFocus: isLoggedIn, // Only revalidate on focus for logged-in users
+      revalidateOnFocus: true,
+      revalidateIfStale: true,
     });
 
   const posts = data ? data.flat() : [];
