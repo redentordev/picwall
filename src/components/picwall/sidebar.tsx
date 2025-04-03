@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { signOut, useSession } from "@/lib/auth-client";
 import { CreatePostModal } from "./create-post-modal";
+import { parseAsBoolean, useQueryState } from "nuqs";
 
 interface SidebarProps {
   onPostCreated?: () => void;
@@ -23,6 +24,12 @@ export function Sidebar({ onPostCreated }: SidebarProps = {}) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
+  // Use nuqs to track create modal state in the URL
+  const [createModalParam, setCreateModalParam] = useQueryState("createPost", {
+    defaultValue: "",
+    history: "push",
+  });
+
   useEffect(() => {
     const checkIfMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -35,12 +42,23 @@ export function Sidebar({ onPostCreated }: SidebarProps = {}) {
     return () => window.removeEventListener("resize", checkIfMobile);
   }, []);
 
+  // Sync the local modal state with the URL parameter
+  useEffect(() => {
+    if (createModalParam === "true") {
+      setIsCreateModalOpen(true);
+    } else if (createModalParam === "" && isCreateModalOpen) {
+      setIsCreateModalOpen(false);
+    }
+  }, [createModalParam, isCreateModalOpen]);
+
   const handleOpenCreateModal = () => {
     setIsCreateModalOpen(true);
+    setCreateModalParam("true");
   };
 
   const handleCloseCreateModal = () => {
     setIsCreateModalOpen(false);
+    setCreateModalParam("");
   };
 
   if (!isMobile) {
