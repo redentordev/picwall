@@ -100,7 +100,7 @@ export function Sidebar({ onPostCreated }: SidebarProps = {}) {
                   <NavItem
                     href="/profile"
                     icon={<User className="w-5 h-5 mr-3" />}
-                    isActive={pathname === "/profile"}
+                    isActive={pathname.includes("/profile")}
                   >
                     Profile
                   </NavItem>
@@ -117,7 +117,7 @@ export function Sidebar({ onPostCreated }: SidebarProps = {}) {
                   router.push("/login");
                 }}
                 variant="ghost"
-                className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-zinc-800"
+                className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-zinc-800 active:bg-zinc-700 active:scale-[0.98] transition-all duration-150"
               >
                 <LogOut className="w-5 h-5 mr-3" />
                 Log out
@@ -125,12 +125,15 @@ export function Sidebar({ onPostCreated }: SidebarProps = {}) {
             ) : (
               <div className="space-y-2">
                 <Link href="/login" className="block">
-                  <Button variant="ghost" className="w-full">
+                  <Button
+                    variant="ghost"
+                    className="w-full active:bg-zinc-700 active:scale-[0.98] transition-all duration-150"
+                  >
                     Log in
                   </Button>
                 </Link>
                 <Link href="/login" className="block">
-                  <Button className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 font-bold text-white">
+                  <Button className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 font-bold text-white active:scale-[0.98] active:from-purple-700 active:to-pink-700 transition-all duration-150">
                     Sign up
                   </Button>
                 </Link>
@@ -207,7 +210,7 @@ export function Sidebar({ onPostCreated }: SidebarProps = {}) {
                 <MobileNavItem
                   href="/profile"
                   icon={<User className="w-5 h-5" />}
-                  isActive={pathname === "/profile"}
+                  isActive={pathname.includes("/profile")}
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Profile
@@ -220,7 +223,7 @@ export function Sidebar({ onPostCreated }: SidebarProps = {}) {
             {isLoggedIn ? (
               <Button
                 variant="ghost"
-                className="w-full justify-center text-red-400 hover:text-red-300 hover:bg-zinc-800"
+                className="w-full justify-center text-red-400 hover:text-red-300 hover:bg-zinc-800 active:bg-zinc-700 active:scale-[0.98] transition-all duration-150"
                 onClick={async () => {
                   setIsMenuOpen(false);
                   await signOut();
@@ -237,7 +240,10 @@ export function Sidebar({ onPostCreated }: SidebarProps = {}) {
                   className="block"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  <Button variant="ghost" className="w-full">
+                  <Button
+                    variant="ghost"
+                    className="w-full active:bg-zinc-700 active:scale-[0.98] transition-all duration-150"
+                  >
                     Log in
                   </Button>
                 </Link>
@@ -246,7 +252,7 @@ export function Sidebar({ onPostCreated }: SidebarProps = {}) {
                   className="block"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  <Button className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 font-bold text-white">
+                  <Button className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 font-bold text-white active:scale-[0.98] active:from-purple-700 active:to-pink-700 transition-all duration-150">
                     Sign up
                   </Button>
                 </Link>
@@ -261,31 +267,45 @@ export function Sidebar({ onPostCreated }: SidebarProps = {}) {
         <MobileNavIcon
           href="/"
           icon={
-            <Home
+            <div
               className={cn(
-                "w-6 h-6",
-                pathname === "/" ? "text-white" : "text-zinc-500"
+                "p-2 rounded-full transition-colors",
+                pathname === "/" ? "bg-zinc-800" : "bg-transparent"
               )}
-            />
+            >
+              <Home
+                className={cn(
+                  "w-6 h-6",
+                  pathname === "/" ? "text-white" : "text-zinc-500"
+                )}
+              />
+            </div>
           }
         />
         <MobileNavIcon
           href="/explore"
           icon={
-            <Compass
+            <div
               className={cn(
-                "w-6 h-6",
-                pathname === "/explore" ? "text-white" : "text-zinc-500"
+                "p-2 rounded-full transition-colors",
+                pathname === "/explore" ? "bg-zinc-800" : "bg-transparent"
               )}
-            />
+            >
+              <Compass
+                className={cn(
+                  "w-6 h-6",
+                  pathname === "/explore" ? "text-white" : "text-zinc-500"
+                )}
+              />
+            </div>
           }
         />
         {isLoggedIn ? (
           <button
             onClick={handleOpenCreateModal}
-            className="flex items-center justify-center"
+            className="flex items-center justify-center active:scale-90 transition-transform duration-150"
           >
-            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-pink-500">
+            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 shadow-lg">
               <PlusSquare className="w-6 h-6 text-white" />
             </div>
           </button>
@@ -293,7 +313,7 @@ export function Sidebar({ onPostCreated }: SidebarProps = {}) {
           <MobileNavIcon
             href="/login"
             icon={
-              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-pink-500">
+              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 shadow-lg">
                 <PlusSquare className="w-6 h-6 text-white" />
               </div>
             }
@@ -303,12 +323,23 @@ export function Sidebar({ onPostCreated }: SidebarProps = {}) {
           <MobileNavIcon
             href="/profile"
             icon={
-              <User
+              <div
                 className={cn(
-                  "w-6 h-6",
-                  pathname === "/profile" ? "text-white" : "text-zinc-500"
+                  "p-2 rounded-full transition-colors",
+                  pathname.includes("/profile")
+                    ? "bg-zinc-800"
+                    : "bg-transparent"
                 )}
-              />
+              >
+                <User
+                  className={cn(
+                    "w-6 h-6",
+                    pathname.includes("/profile")
+                      ? "text-white"
+                      : "text-zinc-500"
+                  )}
+                />
+              </div>
             }
           />
         ) : (
@@ -378,6 +409,7 @@ function NavItem({ href, icon, children, isActive, onClick }: NavItemProps) {
         onClick={onClick}
         className={cn(
           "flex items-center w-full px-3 py-3 text-sm rounded-md transition-colors text-left",
+          "active:bg-zinc-700 active:scale-[0.98] transition-all duration-150",
           isActive
             ? "bg-zinc-800 text-white font-medium"
             : "text-zinc-400 hover:text-white hover:bg-zinc-800"
@@ -394,6 +426,7 @@ function NavItem({ href, icon, children, isActive, onClick }: NavItemProps) {
       href={href}
       className={cn(
         "flex items-center px-3 py-3 text-sm rounded-md transition-colors",
+        "active:bg-zinc-700 active:scale-[0.98] transition-all duration-150",
         isActive
           ? "bg-zinc-800 text-white font-medium"
           : "text-zinc-400 hover:text-white hover:bg-zinc-800"
@@ -422,6 +455,7 @@ function MobileNavItem({
         onClick={onClick}
         className={cn(
           "flex items-center w-full px-4 py-4 text-base rounded-md transition-colors text-left",
+          "active:bg-zinc-700 active:scale-[0.98] transition-all duration-150",
           isActive
             ? "bg-zinc-800 text-white font-medium"
             : "text-zinc-400 hover:text-white hover:bg-zinc-800"
@@ -440,6 +474,7 @@ function MobileNavItem({
       href={href}
       className={cn(
         "flex items-center px-4 py-4 text-base rounded-md transition-colors",
+        "active:bg-zinc-700 active:scale-[0.98] transition-all duration-150",
         isActive
           ? "bg-zinc-800 text-white font-medium"
           : "text-zinc-400 hover:text-white hover:bg-zinc-800"
@@ -465,7 +500,7 @@ function MobileNavIcon({ href, icon, onClick }: MobileNavIconProps) {
     return (
       <button
         onClick={onClick}
-        className="flex items-center justify-center py-1 w-full"
+        className="flex items-center justify-center py-1 w-full active:opacity-70 active:scale-[0.95] transition-all duration-150"
       >
         {icon}
       </button>
@@ -473,7 +508,10 @@ function MobileNavIcon({ href, icon, onClick }: MobileNavIconProps) {
   }
 
   return (
-    <Link href={href} className="flex items-center justify-center py-1 w-full">
+    <Link
+      href={href}
+      className="flex items-center justify-center py-1 w-full active:opacity-70 active:scale-[0.95] transition-all duration-150"
+    >
       {icon}
     </Link>
   );
