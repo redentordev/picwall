@@ -284,7 +284,7 @@ export default function Home() {
 
   const { data, error, isLoading, isValidating, size, setSize, mutate } =
     useSWRInfinite(getKey, fetcher, {
-      revalidateFirstPage: false,
+      revalidateFirstPage: true,
       persistSize: true,
       revalidateOnFocus: isLoggedIn, // Only revalidate on focus for logged-in users
     });
