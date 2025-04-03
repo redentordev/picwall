@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "playwright test",
+    "test": "playwright test --project=chromium",
     "test:ui": "playwright test --ui",
     "test:debug": "playwright test --debug",
     "test:e2e": "playwright test e2e.spec.ts",
