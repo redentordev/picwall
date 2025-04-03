@@ -246,6 +246,58 @@ npm run start
 yarn start
 ```
 
+## Testing
+
+This project includes comprehensive end-to-end tests using Playwright. The tests cover all major user flows including:
+
+- Authentication (login, signup, logout)
+- Post creation and interaction (creating, viewing, liking, commenting)
+- Navigation and UI functionality
+- End-to-end user journey
+
+### Running Tests
+
+To run the tests, first make sure you have installed the dependencies:
+
+```bash
+# Install dependencies
+npm install
+
+# Install Playwright browsers
+npx playwright install
+```
+
+Then you can run the tests using one of the following commands:
+
+```bash
+# Run all tests
+npm test
+
+# Run tests with UI mode (for visual debugging)
+npm run test:ui
+
+# Run tests in debug mode
+npm run test:debug
+
+# Run specific test suites
+npm run test:e2e    # End-to-end flow
+npm run test:auth   # Authentication tests
+npm run test:posts  # Post functionality tests
+npm run test:nav    # Navigation tests
+```
+
+### Test Files
+
+The tests are located in the `tests` directory:
+
+- `tests/utils.ts` - Utility functions for common test operations
+- `tests/auth.spec.ts` - Authentication tests
+- `tests/posts.spec.ts` - Post functionality tests
+- `tests/navigation.spec.ts` - Navigation and UI tests
+- `tests/e2e.spec.ts` - End-to-end user journey test
+
+For more details, see the [tests/README.md](tests/README.md) file.
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.

@@ -532,7 +532,10 @@ export function PostModal({
         }}
       >
         <DialogOverlay className="bg-black/80 backdrop-blur-sm" />
-        <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-[80vw] md:max-w-[90vw] lg:max-w-[80vw] xl:max-w-6xl p-0 bg-zinc-900 border border-zinc-800 overflow-hidden rounded-lg max-h-[90vh]">
+        <DialogContent
+          className="w-[95vw] max-w-[95vw] sm:max-w-[80vw] md:max-w-[90vw] lg:max-w-[80vw] xl:max-w-6xl p-0 bg-zinc-900 border border-zinc-800 overflow-hidden rounded-lg max-h-[90vh]"
+          data-testid="post-modal"
+        >
           <VisuallyHidden>
             <DialogTitle>Post by {formatUsername(post.username)}</DialogTitle>
             <DialogDescription>
@@ -544,7 +547,10 @@ export function PostModal({
           {!isMobile && (
             <div className="grid grid-cols-1 md:grid-cols-2 h-[80vh] max-h-[80vh]">
               {/* Left side - Image */}
-              <div className="relative bg-black flex items-center justify-center h-full">
+              <div
+                className="relative bg-black flex items-center justify-center h-full"
+                data-testid="post-modal-image"
+              >
                 <Image
                   src={post.image || "/placeholder.svg"}
                   alt={`Post by ${post.username}`}
@@ -569,6 +575,7 @@ export function PostModal({
                         href={`/profile/${post.username}`}
                         className="text-sm font-medium hover:underline"
                         onClick={e => e.stopPropagation()}
+                        data-testid="post-modal-username"
                       >
                         {formatUsername(post.username)}
                       </Link>
@@ -583,19 +590,24 @@ export function PostModal({
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 rounded-full mr-6"
+                          data-testid="post-modal-options-button"
                         >
                           <MoreVertical className="h-4 w-4" />
                           <span className="sr-only">Options</span>
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setIsEditMode(true)}>
+                        <DropdownMenuItem
+                          onClick={() => setIsEditMode(true)}
+                          data-testid="modal-edit-option"
+                        >
                           <Edit className="h-4 w-4 mr-2" />
                           Edit caption
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => setIsDeleteDialogOpen(true)}
                           className="text-red-500 focus:text-red-500"
+                          data-testid="modal-delete-option"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
                           Delete post
@@ -606,7 +618,10 @@ export function PostModal({
                 </div>
 
                 {/* Comments section - Make sure it's scrollable */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                <div
+                  className="flex-1 overflow-y-auto p-4 space-y-4"
+                  data-testid="post-modal-comments"
+                >
                   {/* Original post caption */}
                   <div className="flex gap-3">
                     <Avatar className="w-8 h-8 border border-zinc-700 flex-shrink-0">
@@ -624,6 +639,7 @@ export function PostModal({
                             placeholder="Edit your caption..."
                             className="text-sm bg-zinc-800 border-zinc-700 resize-none"
                             rows={3}
+                            data-testid="modal-edit-caption-input"
                           />
                           <div className="flex justify-end gap-2">
                             <Button
@@ -634,6 +650,7 @@ export function PostModal({
                                 setEditCaption(localCaption);
                               }}
                               disabled={isEditingCaption}
+                              data-testid="modal-cancel-edit-button"
                             >
                               Cancel
                             </Button>
@@ -641,6 +658,7 @@ export function PostModal({
                               size="sm"
                               onClick={handleEditCaption}
                               disabled={!editCaption.trim() || isEditingCaption}
+                              data-testid="modal-save-edit-button"
                             >
                               {isEditingCaption ? (
                                 <Loader2 className="h-4 w-4 animate-spin mr-1" />
@@ -652,7 +670,10 @@ export function PostModal({
                         </div>
                       ) : (
                         <>
-                          <p className="text-sm text-white">
+                          <p
+                            className="text-sm text-white"
+                            data-testid="post-modal-caption"
+                          >
                             <Link
                               href={`/profile/${post.username}`}
                               className="font-semibold mr-1 hover:underline text-white"
@@ -674,7 +695,11 @@ export function PostModal({
 
                   {/* Comments */}
                   {localComments.map((comment, index) => (
-                    <div key={index} className="flex gap-3">
+                    <div
+                      key={index}
+                      className="flex gap-3"
+                      data-testid={`modal-comment-${index}`}
+                    >
                       <Avatar className="w-8 h-8 border border-zinc-700 flex-shrink-0">
                         <AvatarImage
                           src={
@@ -716,6 +741,7 @@ export function PostModal({
                         className="h-9 w-9 rounded-full"
                         onClick={handleLike}
                         disabled={!isLoggedIn}
+                        data-testid="modal-like-button"
                       >
                         <Heart
                           className={`h-6 w-6 ${
@@ -729,6 +755,7 @@ export function PostModal({
                         size="icon"
                         className="h-9 w-9 rounded-full"
                         onClick={() => commentInputRef.current?.focus()}
+                        data-testid="modal-comment-button"
                       >
                         <MessageCircle className="h-6 w-6" />
                         <span className="sr-only">Comment</span>
@@ -738,7 +765,10 @@ export function PostModal({
 
                   {/* Likes */}
                   <div className="mb-3">
-                    <p className="text-sm font-semibold">
+                    <p
+                      className="text-sm font-semibold"
+                      data-testid="modal-likes-count"
+                    >
                       {likesCount.toLocaleString()} likes
                     </p>
                   </div>
@@ -760,6 +790,7 @@ export function PostModal({
                         }}
                         className="bg-transparent border-none text-sm h-9 p-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-white placeholder:text-zinc-500"
                         disabled={isSubmittingComment}
+                        data-testid="modal-comment-input"
                       />
                       <Button
                         variant="ghost"
@@ -771,6 +802,7 @@ export function PostModal({
                             ? "opacity-50"
                             : ""
                         }`}
+                        data-testid="modal-post-comment-button"
                       >
                         {isSubmittingComment ? (
                           <Loader2 className="h-4 w-4 animate-spin mr-1" />
@@ -814,6 +846,7 @@ export function PostModal({
                     href={`/profile/${post.username}`}
                     className="text-sm font-medium hover:underline text-white truncate"
                     onClick={e => e.stopPropagation()}
+                    data-testid="post-modal-mobile-username"
                   >
                     {formatUsername(post.username)}
                   </Link>
@@ -828,19 +861,24 @@ export function PostModal({
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 rounded-full"
+                          data-testid="post-modal-mobile-options"
                         >
                           <MoreVertical className="h-4 w-4" />
                           <span className="sr-only">Options</span>
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setIsEditMode(true)}>
+                        <DropdownMenuItem
+                          onClick={() => setIsEditMode(true)}
+                          data-testid="modal-mobile-edit-option"
+                        >
                           <Edit className="h-4 w-4 mr-2" />
                           Edit caption
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => setIsDeleteDialogOpen(true)}
                           className="text-red-500 focus:text-red-500"
+                          data-testid="modal-mobile-delete-option"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
                           Delete post
@@ -857,6 +895,7 @@ export function PostModal({
                 <div
                   className="relative bg-black flex items-center justify-center"
                   style={{ minHeight: "200px", height: "40vh" }}
+                  data-testid="post-modal-mobile-image"
                 >
                   <Image
                     src={post.image || "/placeholder.svg"}
@@ -867,7 +906,10 @@ export function PostModal({
                 </div>
 
                 {/* Caption and comments */}
-                <div className="p-3 space-y-4 flex-1 overflow-y-auto">
+                <div
+                  className="p-3 space-y-4 flex-1 overflow-y-auto"
+                  data-testid="post-modal-mobile-comments"
+                >
                   {/* Caption */}
                   <div className="flex gap-3">
                     <Avatar className="w-8 h-8 border border-zinc-700 flex-shrink-0">
@@ -980,6 +1022,7 @@ export function PostModal({
                       className="h-8 w-8 rounded-full"
                       onClick={handleLike}
                       disabled={!isLoggedIn}
+                      data-testid="modal-mobile-like-button"
                     >
                       <Heart
                         className={`h-5 w-5 ${
@@ -988,9 +1031,15 @@ export function PostModal({
                       />
                       <span className="sr-only">Like</span>
                     </Button>
-                    <MessageCircle className="h-5 w-5" />
+                    <MessageCircle
+                      className="h-5 w-5"
+                      data-testid="modal-mobile-comment-icon"
+                    />
                   </div>
-                  <p className="text-xs font-semibold">
+                  <p
+                    className="text-xs font-semibold"
+                    data-testid="modal-mobile-likes-count"
+                  >
                     {likesCount.toLocaleString()} likes
                   </p>
                 </div>
@@ -1012,6 +1061,7 @@ export function PostModal({
                       }}
                       className="bg-transparent border-none text-sm h-9 p-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-white placeholder:text-zinc-500"
                       disabled={isSubmittingComment}
+                      data-testid="modal-mobile-comment-input"
                     />
                     <Button
                       variant="ghost"
@@ -1023,6 +1073,7 @@ export function PostModal({
                           ? "opacity-50"
                           : ""
                       }`}
+                      data-testid="modal-mobile-post-comment-button"
                     >
                       {isSubmittingComment ? (
                         <Loader2 className="h-4 w-4 animate-spin mr-1" />
@@ -1056,7 +1107,10 @@ export function PostModal({
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
       >
-        <AlertDialogContent className="w-[95%] max-w-md sm:max-w-lg">
+        <AlertDialogContent
+          className="w-[95%] max-w-md sm:max-w-lg"
+          data-testid="modal-delete-confirm-dialog"
+        >
           <AlertDialogHeader>
             <AlertDialogTitle>Delete post</AlertDialogTitle>
             <AlertDialogDescription>
@@ -1065,13 +1119,18 @@ export function PostModal({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col gap-2 sm:flex-row sm:gap-0">
-            <AlertDialogCancel disabled={isDeleting} className="sm:mt-0">
+            <AlertDialogCancel
+              disabled={isDeleting}
+              className="sm:mt-0"
+              data-testid="modal-cancel-delete-button"
+            >
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeletePost}
               disabled={isDeleting}
               className="bg-red-500 hover:bg-red-600 text-white"
+              data-testid="modal-confirm-delete-button"
             >
               {isDeleting ? "Deleting..." : "Delete"}
             </AlertDialogAction>

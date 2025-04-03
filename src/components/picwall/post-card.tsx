@@ -457,7 +457,10 @@ export function PostCard({
 
   return (
     <>
-      <div className="bg-zinc-900 rounded-md overflow-hidden border border-zinc-800 w-full">
+      <div
+        className="bg-zinc-900 rounded-md overflow-hidden border border-zinc-800 w-full"
+        data-testid="post-card"
+      >
         {/* Post header */}
         <div className="flex items-center justify-between p-3">
           <div className="flex items-center gap-2">
@@ -472,6 +475,7 @@ export function PostCard({
                 <Link
                   href={`/profile/${username}`}
                   className="text-sm font-medium hover:underline"
+                  data-testid="post-username"
                 >
                   {formatUsername(username)}
                 </Link>
@@ -492,19 +496,24 @@ export function PostCard({
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 rounded-full"
+                  data-testid="post-options-button"
                 >
                   <MoreVertical className="h-4 w-4" />
                   <span className="sr-only">Options</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setIsEditMode(true)}>
+                <DropdownMenuItem
+                  onClick={() => setIsEditMode(true)}
+                  data-testid="edit-post-option"
+                >
                   <Edit className="h-4 w-4 mr-2" />
                   Edit caption
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => setIsDeleteDialogOpen(true)}
                   className="text-red-500 focus:text-red-500"
+                  data-testid="delete-post-option"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
                   Delete post
@@ -518,6 +527,7 @@ export function PostCard({
         <div
           className="relative aspect-square cursor-pointer"
           onClick={openModal}
+          data-testid="post-image"
         >
           <Image
             src={image || "/placeholder.svg"}
@@ -537,6 +547,7 @@ export function PostCard({
                 className={`h-9 w-9 rounded-full ${isMobile ? "h-8 w-8" : ""}`}
                 onClick={handleLike}
                 disabled={!isLoggedIn}
+                data-testid="like-button"
               >
                 <Heart
                   className={`${isMobile ? "h-5 w-5" : "h-6 w-6"} ${
@@ -559,6 +570,7 @@ export function PostCard({
                   }, 300);
                 }}
                 disabled={!isLoggedIn}
+                data-testid="comment-button"
               >
                 <MessageCircle
                   className={`${isMobile ? "h-5 w-5" : "h-6 w-6"}`}
@@ -574,6 +586,7 @@ export function PostCard({
               className={`${
                 isMobile ? "text-xs" : "text-sm"
               } font-semibold text-white`}
+              data-testid="likes-count"
             >
               {likesCount.toLocaleString()} likes
             </p>
@@ -591,6 +604,7 @@ export function PostCard({
                     isMobile ? "text-xs" : "text-sm"
                   } bg-zinc-800 border-zinc-700 resize-none`}
                   rows={3}
+                  data-testid="edit-caption-input"
                 />
                 <div className="flex justify-end gap-2">
                   <Button
@@ -601,6 +615,7 @@ export function PostCard({
                       setEditCaption(localCaption);
                     }}
                     disabled={isEditingCaption}
+                    data-testid="cancel-edit-button"
                   >
                     Cancel
                   </Button>
@@ -608,6 +623,7 @@ export function PostCard({
                     size="sm"
                     onClick={handleEditCaption}
                     disabled={!editCaption.trim() || isEditingCaption}
+                    data-testid="save-edit-button"
                   >
                     {isEditingCaption ? "Saving..." : "Save"}
                   </Button>
@@ -618,6 +634,7 @@ export function PostCard({
                 className={`${
                   isMobile ? "text-xs leading-normal" : "text-sm"
                 } text-white`}
+                data-testid="post-caption"
               >
                 <Link
                   href={isLoggedIn ? `/profile/${username}` : "/login"}
@@ -655,13 +672,14 @@ export function PostCard({
 
           {/* Comments */}
           {localComments.length > 0 && (
-            <div className="space-y-1">
+            <div className="space-y-1" data-testid="comments-section">
               {localComments.length > 2 && !showAllComments && (
                 <button
                   className={`${
                     isMobile ? "text-xs" : "text-sm"
                   } text-zinc-500 hover:text-zinc-400`}
                   onClick={() => setShowAllComments(true)}
+                  data-testid="view-all-comments"
                 >
                   View all {localComments.length} comments
                 </button>
@@ -671,6 +689,7 @@ export function PostCard({
                 <div
                   key={index}
                   className={`flex items-start gap-2 ${isMobile ? "py-1" : ""}`}
+                  data-testid={`comment-${index}`}
                 >
                   {/* Show avatar in both mobile and desktop */}
                   <Avatar
@@ -734,6 +753,8 @@ export function PostCard({
                   isMobile ? "text-xs" : "text-sm"
                 } h-9 p-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-white placeholder:text-zinc-500`}
                 disabled={isSubmittingComment}
+                ref={commentInputRef}
+                data-testid="comment-input"
               />
               <Button
                 variant="ghost"
@@ -745,6 +766,7 @@ export function PostCard({
                 } ${
                   !commentText.trim() || isSubmittingComment ? "opacity-50" : ""
                 }`}
+                data-testid="submit-comment-button"
               >
                 {isSubmittingComment ? "Posting..." : "Post"}
               </Button>
@@ -770,7 +792,7 @@ export function PostCard({
         </div>
       </div>
 
-      {/* Post Modal - Update props to include edit/delete functionality */}
+      {/* Post Modal */}
       <PostModal
         isOpen={isModalOpen}
         onClose={closeModal}
@@ -803,7 +825,10 @@ export function PostCard({
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
       >
-        <AlertDialogContent className="w-[95%] max-w-md sm:max-w-lg">
+        <AlertDialogContent
+          className="w-[95%] max-w-md sm:max-w-lg"
+          data-testid="delete-confirm-dialog"
+        >
           <AlertDialogHeader>
             <AlertDialogTitle>Delete post</AlertDialogTitle>
             <AlertDialogDescription>
@@ -812,13 +837,18 @@ export function PostCard({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col gap-2 sm:flex-row sm:gap-0">
-            <AlertDialogCancel disabled={isDeleting} className="sm:mt-0">
+            <AlertDialogCancel
+              disabled={isDeleting}
+              className="sm:mt-0"
+              data-testid="cancel-delete-button"
+            >
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeletePost}
               disabled={isDeleting}
               className="bg-red-500 hover:bg-red-600 text-white"
+              data-testid="confirm-delete-button"
             >
               {isDeleting ? "Deleting..." : "Delete"}
             </AlertDialogAction>
