@@ -8,7 +8,17 @@ import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { signOut, useSession } from "@/lib/auth-client";
 import { CreatePostModal } from "./create-post-modal";
-import { parseAsBoolean, useQueryState } from "nuqs";
+import { useQueryState } from "nuqs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface SidebarProps {
   onPostCreated?: () => void;
@@ -23,6 +33,8 @@ export function Sidebar({ onPostCreated }: SidebarProps = {}) {
   const [isMobile, setIsMobile] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Use nuqs to track create modal state in the URL
   const [createModalParam, setCreateModalParam] = useQueryState("createPost", {
@@ -59,6 +71,16 @@ export function Sidebar({ onPostCreated }: SidebarProps = {}) {
   const handleCloseCreateModal = () => {
     setIsCreateModalOpen(false);
     setCreateModalParam("");
+  };
+
+  const handleLogoutClick = () => {
+    setIsLogoutDialogOpen(true);
+  };
+
+  const handleConfirmLogout = async () => {
+    setIsLoggingOut(true);
+    await signOut();
+    router.push("/login");
   };
 
   if (!isMobile) {
@@ -112,10 +134,7 @@ export function Sidebar({ onPostCreated }: SidebarProps = {}) {
           <div className="p-4 mt-auto border-t border-zinc-800">
             {isLoggedIn ? (
               <Button
-                onClick={async () => {
-                  await signOut();
-                  router.push("/login");
-                }}
+                onClick={handleLogoutClick}
                 variant="ghost"
                 className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-zinc-800 active:bg-zinc-700 active:scale-[0.98] transition-all duration-150"
               >
@@ -152,6 +171,38 @@ export function Sidebar({ onPostCreated }: SidebarProps = {}) {
             userImage={session?.user?.image || ""}
           />
         )}
+
+        {/* Logout Confirmation Dialog */}
+        <AlertDialog
+          open={isLogoutDialogOpen}
+          onOpenChange={setIsLogoutDialogOpen}
+        >
+          <AlertDialogContent className="w-[95%] max-w-md bg-zinc-900 border-zinc-800">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-white">
+                Log out
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-zinc-400">
+                Are you sure you want to log out of your account?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex-col gap-2 sm:flex-row sm:gap-0 space-x-2">
+              <AlertDialogCancel
+                disabled={isLoggingOut}
+                className="sm:mt-0 bg-zinc-800 text-white hover:bg-zinc-700 flex"
+              >
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleConfirmLogout}
+                disabled={isLoggingOut}
+                className="flex bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-medium"
+              >
+                {isLoggingOut ? "Logging out..." : "Log out"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </>
     );
   }
@@ -224,10 +275,9 @@ export function Sidebar({ onPostCreated }: SidebarProps = {}) {
               <Button
                 variant="ghost"
                 className="w-full justify-center text-red-400 hover:text-red-300 hover:bg-zinc-800 active:bg-zinc-700 active:scale-[0.98] transition-all duration-150"
-                onClick={async () => {
+                onClick={() => {
                   setIsMenuOpen(false);
-                  await signOut();
-                  router.push("/login");
+                  handleLogoutClick();
                 }}
               >
                 <LogOut className="w-5 h-5 mr-2" />
@@ -359,10 +409,7 @@ export function Sidebar({ onPostCreated }: SidebarProps = {}) {
         {isLoggedIn ? (
           <MobileNavIcon
             href="#"
-            onClick={async () => {
-              await signOut();
-              router.push("/login");
-            }}
+            onClick={handleLogoutClick}
             icon={<LogOut className="w-6 h-6 text-red-400" />}
           />
         ) : (
@@ -390,6 +437,36 @@ export function Sidebar({ onPostCreated }: SidebarProps = {}) {
           userImage={session?.user?.image || ""}
         />
       )}
+
+      {/* Logout Confirmation Dialog - Mobile */}
+      <AlertDialog
+        open={isLogoutDialogOpen}
+        onOpenChange={setIsLogoutDialogOpen}
+      >
+        <AlertDialogContent className="w-[95%] mx-auto max-w-md bg-zinc-900 border-zinc-800">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Log out</AlertDialogTitle>
+            <AlertDialogDescription className="text-zinc-400">
+              Are you sure you want to log out of your account?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-row sm:gap-0">
+            <AlertDialogCancel
+              disabled={isLoggingOut}
+              className="sm:mt-0 bg-zinc-800 text-white hover:bg-zinc-700"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmLogout}
+              disabled={isLoggingOut}
+              className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-medium"
+            >
+              {isLoggingOut ? "Logging out..." : "Log out"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
